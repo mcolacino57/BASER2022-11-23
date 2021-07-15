@@ -125,7 +125,8 @@ function formatCurrency(range) {
  */
 function crProposalSheet() {
   var fS = "crProposalSheet"
-  var errS = "Can't find or create Proposals sheet"
+  var errS = "Can't find or create Proposals sheet";
+  var dbInst = new databaseC("applesmysql");
   try {
     var ss = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Proposals");  // make proosals active or create
     if (!ss) {
@@ -139,7 +140,7 @@ function crProposalSheet() {
       .alert(probS);
     return probS;
   }
-  var propA = getProposalNamesAndIDs();
+  var propA = getProposalNamesAndIDs(dbInst,userEmail);
   var retS = populateSheet(ss, propA);
   return retS;
 }
