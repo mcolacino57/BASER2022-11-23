@@ -35,8 +35,6 @@ testReadFromProposals()
 */
 
 
-
-/****************Called from other gs files*************** */
 /**
  * Purpose: read row(s) upt to maxRows from database using dbInst for connection
  * 
@@ -46,8 +44,6 @@ testReadFromProposals()
  * @param {string} colS - column to select on
  * @param {object[]} rowA - array of objects
  * @return {String} retS - return value
- * 
- * return value is in the form: 
  */
 // Modified 210714 to include json y/n
 const logReadFromTable = false;
@@ -82,21 +78,20 @@ function readFromTable(dbInst, tableNameS, colS, searchS, jsonyn=true) {
     }
     dataA.push(recA); // push inner array into outside array
   }
-  // This finishes with an nxm matrix with #rows = length of dataA and #cols = numCols
-  logLoc ? console.log(dataA) : true;
+  if (logReadFromTable) { console.log(dataA) };
 
   /**************************now get the header names ************************** */
   var qryS = `SHOW COLUMNS FROM ${tableNameS};`
   try {
     var colA = dbInst.getcolumns(tableNameS);
-    stmt2 = locConn.createStatement();
-    var colA = [];
-    var cols = stmt2.executeQuery(qryS);
-    while (cols.next()) {
-      colA.push(cols.getString(1));
-    }
+    //stmt2 = locConn.createStatement();
+    //var colA = [];
+    //var cols = stmt2.executeQuery(qryS);
+    //while (cols.next()) {
+    //  colA.push(cols.getString(1));
+    //}
   } catch (err) {
-    var problemS = `In ${fS} problem with executing query : ${err}`
+    console.log(`In ${fS} problem with executing query : ${err}`);
   }
   var rowA = splitRangesToObjects(colA, dataA); // utility function in objUtil.gs
   logLoc ? console.log(rowA) : true;
