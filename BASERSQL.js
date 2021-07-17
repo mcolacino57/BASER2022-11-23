@@ -36,7 +36,7 @@ testReadFromProposals()
 
 
 /**
- * Purpose: read row(s) upt to maxRows from database using dbInst for connection
+ * Purpose: read row(s) up to maxRows from database using dbInst for connection
  * 
  *
  * @param  {object} dbInst - instance of database class
@@ -78,7 +78,8 @@ function readFromTable(dbInst, tableNameS, colS, searchS, jsonyn=true) {
     }
     dataA.push(recA); // push inner array into outside array
   }
-  if (logReadFromTable) { console.log(dataA) };
+  // This finishes with an nxm matrix with #rows = length of dataA and #cols = numCols
+  logLoc ? console.log(dataA) : true;
 
   /**************************now get the header names ************************** */
   var qryS = `SHOW COLUMNS FROM ${tableNameS};`
@@ -91,19 +92,19 @@ function readFromTable(dbInst, tableNameS, colS, searchS, jsonyn=true) {
     //  colA.push(cols.getString(1));
     //}
   } catch (err) {
-    console.log(`In ${fS} problem with executing query : ${err}`);
+    var problemS = `In ${fS} problem with executing query : ${err}`
+    console.log(problemS);
+    return problemS
   }
+
   var rowA = splitRangesToObjects(colA, dataA); // utility function in objUtil.gs
   logLoc ? console.log(rowA) : true;
+
   results.close();
   stmt.close();
   // stmt2.close();
-
-  if (logLoc) {
-    var end = new Date();
-    console.log('Time elapsed: %sms', end - start);
-  }
-  // Create backward-compatible json structure to mimic REST calls to Airtable  var retA = [];
+  // Create backward-compatible json structure to mimic REST calls to Airtable
+  var retA = [];
   for (j in rowA) {
     var retObj = new Object();
     retObj["fields"] = rowA[j];
@@ -117,6 +118,7 @@ function readFromTable(dbInst, tableNameS, colS, searchS, jsonyn=true) {
   }
 
 }
+
 /**
  * Purpose: 
  *
@@ -314,6 +316,26 @@ function getSQLRecs(dbInst, tableNameS, searchS) {
   return (json.records);
 }
 
+/**
+ * Purpose: get a list of ProposalNames from proposals table
+ *
+ * @param  {String} userS - optional user string (email)
+ * @param  {itemReponse[]} param_name - an array of responses 
+ * @return {String} retS - return value
+ */
+function getProposalNames(userS = "mcolacino@squarefoot.com") {
+  var dbInst = new databaseC("applesmysql");
+  var tableNameS = "proposals";
+  var colNameS = "CreatedBy";
+  var searchS = userS;
+  var jsonyn = false;
+  var ret = readFromTable(dbInst, tableNameS, colNameS, searchS, jsonyn);
+  var proposalsA = ret.map(function (record) {
+    return record.proposalname
+  })
+  console.log(proposalsA)
+  return proposalsA
+}
 
 /**
  * Purpose: Write a row to the specified table
@@ -539,7 +561,7 @@ function deleteFromTable(dbInst, tableNameS, selectS) {
   var fS = "deleteFromTable";
   switch (tableNameS) {
     case "base_rent":
-      colS = "ProposalID"
+      var colS = "ProposalID"
       break;
     default:
       throw new Error("Attempting to delete from undefined table");
@@ -549,34 +571,14 @@ function deleteFromTable(dbInst, tableNameS, selectS) {
   try {
     var locConn = dbInst.getconn(); // get connection from the instance
     var stmt = locConn.createStatement();
-    var qryS = `DELETE FROM ${tableNameS} where ${colS} = ${selectS};`
+    var qryS = `DELETE FROM ${tableNameS} where ${colS} = '${selectS}';`
+    console.log(qryS);
     locConn.createStatement().execute(qryS);
 
   } catch (e) {
     console.log(`${fS}: ${e}`)
   }
   return true
-}
-
-/**
- * Purpose: get a list of ProposalNames from proposals table
- *
- * @param  {String} userS - optional user string (email)
- * @param  {itemReponse[]} param_name - an array of responses 
- * @return {String} retS - return value
- */
-function getProposalNames(userS = "mcolacino@squarefoot.com") {
-  var dbInst = new databaseC("applesmysql");
-  var tableNameS = "proposals";
-  var colNameS = "CreatedBy";
-  var searchS = userS;
-  var jsonyn = false;
-  var ret = readFromTable(dbInst, tableNameS, colNameS, searchS, jsonyn);
-  var proposalsA = ret.map(function (record) {
-    return record.proposalname
-  })
-  console.log(proposalsA)
-  return proposalsA
 }
 
 

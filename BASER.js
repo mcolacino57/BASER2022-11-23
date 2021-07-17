@@ -6,10 +6,10 @@ const userEmail = Session.getActiveUser().getEmail();
 const ssLogID = '1l3EYsH7UJFUfuFORFF7GNxPM2jwLZlSh_0xSgSDTOPo';
 Logger = BetterLog.useSpreadsheet(ssLogID); 
 
-function onOpen() {
-    Logger.log("Getting into onOpen");
-    SpreadsheetApp.getUi() // Or DocumentApp or FormApp.
-      .alert("Getting into onOpen");
+function onOpen(e) {
+    // Logger.log(`Getting into onOpen with ${e}`);
+    // SpreadsheetApp.getUi() // Or DocumentApp or FormApp.
+    //   .alert("Getting into onOpen");
   var spreadsheet = SpreadsheetApp.getActive();
   var menuItems = [
     { name: 'Get Proposals', functionName: 'crProposalSheet' },
@@ -142,6 +142,7 @@ function crProposalSheet() {
   }
   var propA = getProposalNamesAndIDs(dbInst,userEmail);
   var retS = populateSheet(ss, propA);
+  dbInst.closeconn();
   return retS;
 }
 
@@ -188,7 +189,9 @@ function exportBR(dbInst) {
     var alreadyBR = matchingBRProposalID(dbInst, cellPID); // already br for this proposal?
     if (alreadyBR) {
       var updateYN = duplicateBRAlert();
-      if (updateYN) { var ret = deleteFromTable(dbInst, "base_rent", cellPID); }
+      if (updateYN) { 
+        var ret = deleteFromTable(dbInst, "base_rent", cellPID); 
+        }
       else { return }
     }
     var lrS = ssBR.getLastRow().toString(); // last row string
