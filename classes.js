@@ -1,4 +1,23 @@
-/*****************clause class ************************************ */
+/*********************proposal class ******************************** */
+class proposalC {
+  constructor(dbInst,propName){
+    var allPropsA = getProposalNamesAndIDs(dbInst,userEmail);
+    this.prop = allPropsA.filter((p)=> {
+      return p[0]==propName  // returns array with propName and propID
+    })[0];
+    this.propName=this.prop[0];
+    this.propID=this.prop[1];
+  }
+  getpropName(){
+    return this.propName
+  }
+  getpropID(){
+    return this.propID
+  }
+
+  }
+  /*****************clause class ************************************ */
+
 class clauseC {
   constructor(canonName, geo) {
     this.name = canonName; //never changes
@@ -90,9 +109,9 @@ class brokerC extends personC {
 /***************** doc class ************************************ */
 
 class docC {
-  constructor() {
-    this.file = DriveApp.getFileById("1udz_HSz9HWNGq-OsdgzTXmu7s1H6GRArPfC-APKcQCk");
-    this.folder = DriveApp.getFolderById('1eJIDn5LT-nTbMU0GA4MR8e8fwxfe6Q4Q');
+  constructor(docID,foldID) {
+    this.file = DriveApp.getFileById(docID);
+    this.folder = DriveApp.getFolderById(foldID);
     this.docName = this.file.getName();
     this.ds = formatCurrentDate();
     this.copy = this.file.makeCopy(this.docName + " " + this.ds, this.folder);
@@ -184,4 +203,7 @@ class databaseC {
     if (this.conn != null) this.conn.close();
 
   }
+}
+function formatCurrentDate() {
+  return Utilities.formatDate(new Date(), "GMT+1", "yyyyMMdd");
 }
