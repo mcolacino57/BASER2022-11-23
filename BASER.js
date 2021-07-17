@@ -7,7 +7,7 @@ const ssLogID = '1l3EYsH7UJFUfuFORFF7GNxPM2jwLZlSh_0xSgSDTOPo';
 Logger = BetterLog.useSpreadsheet(ssLogID); 
 
 function onOpen(e) {
-    // Logger.log(`Getting into onOpen with ${e}`);
+    // Logger.log(`Getting into onOpen with ${err}`);
     // SpreadsheetApp.getUi() // Or DocumentApp or FormApp.
     //   .alert("Getting into onOpen");
   var spreadsheet = SpreadsheetApp.getActive();
@@ -41,10 +41,10 @@ function crInitRow(ss) {
     var brRow = crBaseRentRow("=InitialDate", nominalFreeRent, 0);
     ss.appendRow(brRow);
 
-  } catch (e) {
-    Logger.log(`In ${fS}: ${e}`);
+  } catch (err) {
+    Logger.log(`In ${fS}: ${err}`);
     SpreadsheetApp.getUi() // Or DocumentApp or FormApp.
-      .alert(`${e}`);
+      .alert(`${err}`);
   }
   return "Inital row created"
 }
@@ -83,10 +83,10 @@ function crAddlRow(ss) {
     // Passing only two arguments returns a "range" with a single cell.
     sheet.getRange(lr, rentPSFC).setNumberFormat("$#,##0.00;$(#,##0.00)");
     sheet.getRange(lr, rentAnnC).setNumberFormat("$#,##0;$(#,##0)");
-  } catch (e) {
-    Logger.log(`In ${fS}: error: ${e}`);
+  } catch (err) {
+    Logger.log(`In ${fS}: error: ${err}`);
     SpreadsheetApp.getUi() // Or DocumentApp or FormApp.
-      .alert(`${e}`);
+      .alert(`${err}`);
   }
   return "Inital row created"
 }
@@ -164,10 +164,10 @@ function populateSheet(ss, propA) {
     var cellPID = ssBR.getRange("pid");
     cellPID.setFormula("=VLOOKUP(B2,Proposals!A2:B6,2,FALSE)");
   }
-  catch (e) {
-    Logger.log(`${errS}: ${e}`);
+  catch (err) {
+    Logger.log(`${errS}: ${err}`);
     SpreadsheetApp.getUi() // Or DocumentApp or FormApp.
-      .alert(`${errS}: ${e}`);
+      .alert(`${errS}: ${err}`);
     return -1;
   }
   return "Success"
@@ -265,8 +265,8 @@ function duplicateBRAlert() {
       ui.alert('Canceled');
       return false
     }
-  } catch (e) {
-    ui.alert(`Error in duplicateBRAlert: ${e}`);
+  } catch (err) {
+    ui.alert(`Error in duplicateBRAlert: ${err}`);
     return false
   }
 
