@@ -382,10 +382,10 @@ function writeToTable(dbInst, tableNameS, recordA) {
     stmt.execute();
 
     console.log(qryS);
-  } catch (e) {
-    console.log(`In writeToTable: ${e}`);
+  } catch (err) {
+    console.log(`In writeToTable: ${err}`);
     SpreadsheetApp.getUi() // Or DocumentApp or FormApp.
-      .alert(`In writeToTable: ${e}`);
+      .alert(`In writeToTable: ${err}`);
     return false
   }
   return "Success"
@@ -575,8 +575,8 @@ function deleteFromTable(dbInst, tableNameS, selectS) {
     console.log(qryS);
     locConn.createStatement().execute(qryS);
 
-  } catch (e) {
-    console.log(`${fS}: ${e}`)
+  } catch (err) {
+    console.log(`${fS}: ${err}`)
   }
   return true
 }
@@ -594,7 +594,7 @@ function matchingBRProposalID(dbInst, propID) {
   try {
     var locConn = dbInst.getconn(); // get connection from the instance
     var stmt = locConn.createStatement();
-  } catch (e) {
+  } catch (err) {
     console.log(`In ${fS} problem with connecting: ${err}`);
     return -1
   }
