@@ -9,7 +9,6 @@
 readFromTable(dbInst, tableNameS, colS, searchS, jsonyn=true)
 readInListFromTable(dbInst, tableNameS, colS, inListS)
 readAllFromTable(dbInst, tableNameS)
-getSQLRecs(dbInst, tableNameS, searchS)
 getProposalNamesAndIDs(dbInst,userS = "mcolacino@squarefoot.com")
 getAddressSuiteFloorSF(userS = "mcolacino@squarefoot.com")
 writeToTable(dbInst, tableNameS, recordA)
@@ -263,57 +262,6 @@ function readAllFromTable(dbInst, tableNameS) {
     retA.push(retObj);
   }
   return retA
-}
-/**
- * Purpose: get records from the database in as similar a way as possible to atUtil.gs
- *
- * @param  {string} tableNameS - name of the table
- * @param  {string} searchS - search for string
- * @return {string} retS - return value
- */
-
-const logGetSQLRecs = false;
-function getSQLRecs(dbInst, tableNameS, searchS) {
-  var logLoc = logGetSQLRecs;  // change to log name
-  var fS = "getSQLRecs";
-  switch (tableNameS) {
-    case "spacesbuildingcontacts":
-      fieldS = "space_identity";
-      break;
-    case "tourbook":
-      fieldS = "SpaceID";
-      break;
-    case "contacts":
-      fieldS = "ContactID";
-      break;
-    case "spaces":
-      fieldS = "SpaceID";
-      break;
-    case "proposedrent":
-      fieldS = "TourBookIndex";
-      break;
-    case "clauses":
-      fieldS = "Section"
-      break;
-    case "clauses2":
-      fieldS = "Section";
-      break;
-
-    default:
-      break;
-  }
-  var jsonyn = true;
-  var json = readFromTable(dbInst, tableNameS, fieldS, searchS, jsonyn);
-  try {
-    var response = UrlFetchApp.fetch(endpoint, params);
-    var data = response.getContentText();
-    var json = JSON.parse(data);
-  }
-  catch (err) {
-    throw new Error(`${fS}: got ${err}`)
-  }
-  if (logGetJRecs) { console.log(json.records) }
-  return (json.records);
 }
 
 /**
