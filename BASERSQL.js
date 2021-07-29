@@ -1,39 +1,4 @@
-// Updated 210706: refactored some console log stuff in readFromTable and readAllFromTable
-// Updated 210710: improved the error handling logic
-// Moved to github
-// Dependencies: classes.gs for dbInst
-// Removed some functions for creating database, dropping tables, etc. since this is better
-// handled with SQL and MySQLWorkbench
-
-/* Functions included
-readFromTable(dbInst, tableNameS, colS, searchS, jsonyn=true)
-readInListFromTable(dbInst, tableNameS, colS, inListS)
-readAllFromTable(dbInst, tableNameS)
-getProposalNamesAndIDs(dbInst,userS = "mcolacino@squarefoot.com")
-getAddressSuiteFloorSF(userS = "mcolacino@squarefoot.com")
-writeToTable(dbInst, tableNameS, recordA)
-getSpaceDisplay(userS = "mcolacino@squarefoot.com")
-getProposalData(userS = "mcolacino@squarefoot.com")
-getNamedProposalData(proposalNameS, userS = "mcolacino@squarefoot.com")
-writePropDetail(dbInst, record)
-writeProposal(dbInst, record)
-deleteFromTable(dbInst, tableNameS, selectS)
-getProposalNames(userS = "mcolacino@squarefoot.com")
-matchingBRProposalID(dbInst, propID)
-splitRangesToObjects(headers, values)
-camelString(header)
-isCellEmpty_(cellData)
-isAlnum_(char)
-isDigit_(char)
-objectToArray(headers, objValues)
-rangeToObjects(range)
-camelArray(headers)
-testMatchingBRProposalID()
-testReadFromClauses()
-testReadFromProposals()
-*/
-
-
+// 210727 9:49
 /**
  * Purpose: read row(s) up to maxRows from database using dbInst for connection
  * 
@@ -393,16 +358,17 @@ function getProposalData(userS = "mcolacino@squarefoot.com") {
   * @return {object} pObj - object: name, id, loc, size
   */
 
-function getNamedProposalData(proposalNameS, userS = "mcolacino@squarefoot.com") {
+function getNamedProposalData(dbInst,proposalNameS, userS = "mcolacino@squarefoot.com") {
   var fS = "getNamedProposalData";
   try {
-    var dbInst = new databaseC("applesmysql");
+    // var dbInst = new databaseC("applesmysql");
     var tableNameS = "proposals";
     var colNameS = "CreatedBy";
     var searchS = userS;
-    var ret = readFromTable(dbInst, tableNameS, colNameS, searchS);
+    var jsonyn = false;
+    var ret = readFromTable(dbInst, tableNameS, colNameS, searchS,jsonyn);
     var propDataA = ret.map(function (record) {
-      return [record.fields.proposalname, record.fields.proposalid, record.fields.proposallocation, record.fields.proposalsize]
+      return [record.proposalname, record.proposalid, record.proposalsize]
     }).filter(prop => prop[0] == proposalNameS)
     //console.log(propDataA)
   } catch (err) {
@@ -415,8 +381,7 @@ function getNamedProposalData(proposalNameS, userS = "mcolacino@squarefoot.com")
     var pObj = {
       "name": p[0],
       "id": p[1],
-      "loc": p[2],
-      "size": p[3]
+      "size": p[2]
     };
     return pObj
   } else {
@@ -577,7 +542,7 @@ function getProposalNamesAndIDs(dbInst,userS = "mcolacino@squarefoot.com") {
   var retA = readFromTable(dbInst, tableNameS, colNameS, searchS, jsonyn);
   var propNameIDA = retA.map(function (record) {
     return [record.proposalname, record.proposalid]
-  })
+  });
   console.log(propNameIDA)
   return propNameIDA
 }
@@ -607,6 +572,29 @@ function getAddressSuiteFloorSF(userS = "mcolacino@squarefoot.com") {
   })
   logGetAddressSuitFloorSF ? console.log(spaceA) : true;
   return spaceA
+}
+
+function getRSFfromPID(dbInst,pid){
+  var fS = "getRSFfromPID";
+  try {
+    const tableNameS="prop_rsf";
+    const colNameS = "ProposalID";
+    const searchS = pid;
+    const jsonyn = false;
+    var retA = readFromTable(dbInst, tableNameS, colNameS, searchS, jsonyn);
+    if(retA.length===0){ 
+      throw new Error(`proposal ${pid} not found`);
+    }
+    else {
+      var rsf = retA[0].squarefeet;
+    }
+  }
+  catch(err){
+    console.log(`In ${fS}; error: ${err}`)
+    return false
+  }
+return rsf
+
 }
 
 
@@ -781,4 +769,11 @@ function testReadFromProposals() {
   var retA = readFromTable(dbInst, tableNameS, colNameS, searchS, jsonyn); // all rows in section Electric
   console.log(retA);
   dbInst.getconn().close;
+}
+
+function testgetRSFfromPID(pid){
+  const dbInst = new databaseC("applesmysql");
+  var rsf = getRSFfromPID(dbInst,pid);
+  console.log(rsf);
+  return rsf
 }
