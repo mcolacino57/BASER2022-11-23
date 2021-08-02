@@ -1,44 +1,6 @@
-// Updated 210706: refactored some console log stuff in readFromTable and readAllFromTable
-// Updated 210710: improved the error handling logic
-// Moved to github
-// Dependencies: classes.gs for dbInst
-// Removed some functions for creating database, dropping tables, etc. since this is better
-// handled with SQL and MySQLWorkbench
-
-/* Functions included
-readFromTable(dbInst, tableNameS, colS, searchS, jsonyn=true)
-readInListFromTable(dbInst, tableNameS, colS, inListS)
-readAllFromTable(dbInst, tableNameS)
-getSQLRecs(dbInst, tableNameS, searchS)
-getProposalNamesAndIDs(dbInst,userS = "mcolacino@squarefoot.com")
-getAddressSuiteFloorSF(userS = "mcolacino@squarefoot.com")
-writeToTable(dbInst, tableNameS, recordA)
-getSpaceDisplay(userS = "mcolacino@squarefoot.com")
-getProposalData(userS = "mcolacino@squarefoot.com")
-getNamedProposalData(proposalNameS, userS = "mcolacino@squarefoot.com")
-writePropDetail(dbInst, record)
-writeProposal(dbInst, record)
-deleteFromTable(dbInst, tableNameS, selectS)
-getProposalNames(userS = "mcolacino@squarefoot.com")
-matchingBRProposalID(dbInst, propID)
-splitRangesToObjects(headers, values)
-camelString(header)
-isCellEmpty_(cellData)
-isAlnum_(char)
-isDigit_(char)
-objectToArray(headers, objValues)
-rangeToObjects(range)
-camelArray(headers)
-testMatchingBRProposalID()
-testReadFromClauses()
-testReadFromProposals()
-*/
-
-
-
-/****************Called from other gs files*************** */
+// 210727 9:49
 /**
- * Purpose: read row(s) upt to maxRows from database using dbInst for connection
+ * Purpose: read row(s) up to maxRows from database using dbInst for connection
  * 
  *
  * @param  {object} dbInst - instance of database class
@@ -46,8 +8,6 @@ testReadFromProposals()
  * @param {string} colS - column to select on
  * @param {object[]} rowA - array of objects
  * @return {String} retS - return value
- * 
- * return value is in the form: 
  */
 // Modified 210714 to include json y/n
 const logReadFromTable = false;
@@ -89,26 +49,26 @@ function readFromTable(dbInst, tableNameS, colS, searchS, jsonyn=true) {
   var qryS = `SHOW COLUMNS FROM ${tableNameS};`
   try {
     var colA = dbInst.getcolumns(tableNameS);
-    stmt2 = locConn.createStatement();
-    var colA = [];
-    var cols = stmt2.executeQuery(qryS);
-    while (cols.next()) {
-      colA.push(cols.getString(1));
-    }
+    //stmt2 = locConn.createStatement();
+    //var colA = [];
+    //var cols = stmt2.executeQuery(qryS);
+    //while (cols.next()) {
+    //  colA.push(cols.getString(1));
+    //}
   } catch (err) {
     var problemS = `In ${fS} problem with executing query : ${err}`
+    console.log(problemS);
+    return problemS
   }
+
   var rowA = splitRangesToObjects(colA, dataA); // utility function in objUtil.gs
   logLoc ? console.log(rowA) : true;
+
   results.close();
   stmt.close();
   // stmt2.close();
-
-  if (logLoc) {
-    var end = new Date();
-    console.log('Time elapsed: %sms', end - start);
-  }
-  // Create backward-compatible json structure to mimic REST calls to Airtable  var retA = [];
+  // Create backward-compatible json structure to mimic REST calls to Airtable
+  var retA = [];
   for (j in rowA) {
     var retObj = new Object();
     retObj["fields"] = rowA[j];
@@ -122,6 +82,7 @@ function readFromTable(dbInst, tableNameS, colS, searchS, jsonyn=true) {
   }
 
 }
+
 /**
  * Purpose: 
  *
@@ -267,58 +228,27 @@ function readAllFromTable(dbInst, tableNameS) {
   }
   return retA
 }
+
 /**
- * Purpose: get records from the database in as similar a way as possible to atUtil.gs
+ * Purpose: get a list of ProposalNames from proposals table
  *
- * @param  {string} tableNameS - name of the table
- * @param  {string} searchS - search for string
- * @return {string} retS - return value
+ * @param  {String} userS - optional user string (email)
+ * @param  {itemReponse[]} param_name - an array of responses 
+ * @return {String} retS - return value
  */
-
-const logGetSQLRecs = false;
-function getSQLRecs(dbInst, tableNameS, searchS) {
-  var logLoc = logGetSQLRecs;  // change to log name
-  var fS = "getSQLRecs";
-  switch (tableNameS) {
-    case "spacesbuildingcontacts":
-      fieldS = "space_identity";
-      break;
-    case "tourbook":
-      fieldS = "SpaceID";
-      break;
-    case "contacts":
-      fieldS = "ContactID";
-      break;
-    case "spaces":
-      fieldS = "SpaceID";
-      break;
-    case "proposedrent":
-      fieldS = "TourBookIndex";
-      break;
-    case "clauses":
-      fieldS = "Section"
-      break;
-    case "clauses2":
-      fieldS = "Section";
-      break;
-
-    default:
-      break;
-  }
-  var jsonyn = true;
-  var json = readFromTable(dbInst, tableNameS, fieldS, searchS, jsonyn);
-  try {
-    var response = UrlFetchApp.fetch(endpoint, params);
-    var data = response.getContentText();
-    var json = JSON.parse(data);
-  }
-  catch (err) {
-    throw new Error(`${fS}: got ${err}`)
-  }
-  if (logGetJRecs) { console.log(json.records) }
-  return (json.records);
+function getProposalNames(userS = "mcolacino@squarefoot.com") {
+  var dbInst = new databaseC("applesmysql");
+  var tableNameS = "proposals";
+  var colNameS = "CreatedBy";
+  var searchS = userS;
+  var jsonyn = false;
+  var ret = readFromTable(dbInst, tableNameS, colNameS, searchS, jsonyn);
+  var proposalsA = ret.map(function (record) {
+    return record.proposalname
+  })
+  console.log(proposalsA)
+  return proposalsA
 }
-
 
 /**
  * Purpose: Write a row to the specified table
@@ -365,10 +295,10 @@ function writeToTable(dbInst, tableNameS, recordA) {
     stmt.execute();
 
     console.log(qryS);
-  } catch (e) {
-    console.log(`In writeToTable: ${e}`);
+  } catch (err) {
+    console.log(`In writeToTable: ${err}`);
     SpreadsheetApp.getUi() // Or DocumentApp or FormApp.
-      .alert(`In writeToTable: ${e}`);
+      .alert(`In writeToTable: ${err}`);
     return false
   }
   return "Success"
@@ -428,16 +358,17 @@ function getProposalData(userS = "mcolacino@squarefoot.com") {
   * @return {object} pObj - object: name, id, loc, size
   */
 
-function getNamedProposalData(proposalNameS, userS = "mcolacino@squarefoot.com") {
+function getNamedProposalData(dbInst,proposalNameS, userS = "mcolacino@squarefoot.com") {
   var fS = "getNamedProposalData";
   try {
-    var dbInst = new databaseC("applesmysql");
+    // var dbInst = new databaseC("applesmysql");
     var tableNameS = "proposals";
     var colNameS = "CreatedBy";
     var searchS = userS;
-    var ret = readFromTable(dbInst, tableNameS, colNameS, searchS);
+    var jsonyn = false;
+    var ret = readFromTable(dbInst, tableNameS, colNameS, searchS,jsonyn);
     var propDataA = ret.map(function (record) {
-      return [record.fields.proposalname, record.fields.proposalid, record.fields.proposallocation, record.fields.proposalsize]
+      return [record.proposalname, record.proposalid, record.proposalsize]
     }).filter(prop => prop[0] == proposalNameS)
     //console.log(propDataA)
   } catch (err) {
@@ -450,8 +381,7 @@ function getNamedProposalData(proposalNameS, userS = "mcolacino@squarefoot.com")
     var pObj = {
       "name": p[0],
       "id": p[1],
-      "loc": p[2],
-      "size": p[3]
+      "size": p[2]
     };
     return pObj
   } else {
@@ -544,7 +474,7 @@ function deleteFromTable(dbInst, tableNameS, selectS) {
   var fS = "deleteFromTable";
   switch (tableNameS) {
     case "base_rent":
-      colS = "ProposalID"
+      var colS = "ProposalID"
       break;
     default:
       throw new Error("Attempting to delete from undefined table");
@@ -554,34 +484,14 @@ function deleteFromTable(dbInst, tableNameS, selectS) {
   try {
     var locConn = dbInst.getconn(); // get connection from the instance
     var stmt = locConn.createStatement();
-    var qryS = `DELETE FROM ${tableNameS} where ${colS} = ${selectS};`
+    var qryS = `DELETE FROM ${tableNameS} where ${colS} = '${selectS}';`
+    console.log(qryS);
     locConn.createStatement().execute(qryS);
 
-  } catch (e) {
-    console.log(`${fS}: ${e}`)
+  } catch (err) {
+    console.log(`${fS}: ${err}`)
   }
   return true
-}
-
-/**
- * Purpose: get a list of ProposalNames from proposals table
- *
- * @param  {String} userS - optional user string (email)
- * @param  {itemReponse[]} param_name - an array of responses 
- * @return {String} retS - return value
- */
-function getProposalNames(userS = "mcolacino@squarefoot.com") {
-  var dbInst = new databaseC("applesmysql");
-  var tableNameS = "proposals";
-  var colNameS = "CreatedBy";
-  var searchS = userS;
-  var jsonyn = false;
-  var ret = readFromTable(dbInst, tableNameS, colNameS, searchS, jsonyn);
-  var proposalsA = ret.map(function (record) {
-    return record.proposalname
-  })
-  console.log(proposalsA)
-  return proposalsA
 }
 
 
@@ -597,7 +507,7 @@ function matchingBRProposalID(dbInst, propID) {
   try {
     var locConn = dbInst.getconn(); // get connection from the instance
     var stmt = locConn.createStatement();
-  } catch (e) {
+  } catch (err) {
     console.log(`In ${fS} problem with connecting: ${err}`);
     return -1
   }
@@ -632,7 +542,7 @@ function getProposalNamesAndIDs(dbInst,userS = "mcolacino@squarefoot.com") {
   var retA = readFromTable(dbInst, tableNameS, colNameS, searchS, jsonyn);
   var propNameIDA = retA.map(function (record) {
     return [record.proposalname, record.proposalid]
-  })
+  });
   console.log(propNameIDA)
   return propNameIDA
 }
@@ -662,6 +572,29 @@ function getAddressSuiteFloorSF(userS = "mcolacino@squarefoot.com") {
   })
   logGetAddressSuitFloorSF ? console.log(spaceA) : true;
   return spaceA
+}
+
+function getRSFfromPID(dbInst,pid){
+  var fS = "getRSFfromPID";
+  try {
+    const tableNameS="prop_rsf";
+    const colNameS = "ProposalID";
+    const searchS = pid;
+    const jsonyn = false;
+    var retA = readFromTable(dbInst, tableNameS, colNameS, searchS, jsonyn);
+    if(retA.length===0){ 
+      throw new Error(`proposal ${pid} not found`);
+    }
+    else {
+      var rsf = retA[0].squarefeet;
+    }
+  }
+  catch(err){
+    console.log(`In ${fS}; error: ${err}`)
+    return false
+  }
+return rsf
+
 }
 
 
@@ -836,4 +769,11 @@ function testReadFromProposals() {
   var retA = readFromTable(dbInst, tableNameS, colNameS, searchS, jsonyn); // all rows in section Electric
   console.log(retA);
   dbInst.getconn().close;
+}
+
+function testgetRSFfromPID(pid){
+  const dbInst = new databaseC("applesmysql");
+  var rsf = getRSFfromPID(dbInst,pid);
+  console.log(rsf);
+  return rsf
 }

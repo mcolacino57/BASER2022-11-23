@@ -1,15 +1,18 @@
 var ss = SpreadsheetApp.getActiveSpreadsheet();
-const nominalFreeRent = 6; // In months
-const nominalRent = 50;  // in $/PSF
-const nominalTerm = 36; // In months
+var nominalFreeRentG = "6";
+var nominalRentG = "60";
+var nominalTermG = "36";
+var monthsDefaultG = "12";
+    
+
 const userEmail = Session.getActiveUser().getEmail();
 const ssLogID = '1l3EYsH7UJFUfuFORFF7GNxPM2jwLZlSh_0xSgSDTOPo';
 Logger = BetterLog.useSpreadsheet(ssLogID); 
 
-function onOpen() {
-    Logger.log("Getting into onOpen");
-    SpreadsheetApp.getUi() // Or DocumentApp or FormApp.
-      .alert("Getting into onOpen");
+function onOpen(e) {
+    // Logger.log(`Getting into onOpen with ${err}`);
+    // SpreadsheetApp.getUi() // Or DocumentApp or FormApp.
+    //   .alert("Getting into onOpen");
   var spreadsheet = SpreadsheetApp.getActive();
   var menuItems = [
     { name: 'Get Proposals', functionName: 'crProposalSheet' },
@@ -38,13 +41,13 @@ function crInitRow(ss) {
       throw new Error(`Last row is ${lr}; delete all rows past ${lastRow}`);
       return errS
     }
-    var brRow = crBaseRentRow("=InitialDate", nominalFreeRent, 0);
+    var brRow = crBaseRentRow("=InitialDate", nominalFreeRentG, 0);
     ss.appendRow(brRow);
 
-  } catch (e) {
-    Logger.log(`In ${fS}: ${e}`);
+  } catch (err) {
+    Logger.log(`In ${fS}: ${err}`);
     SpreadsheetApp.getUi() // Or DocumentApp or FormApp.
-      .alert(`${e}`);
+      .alert(`${err}`);
   }
   return "Inital row created"
 }
@@ -67,7 +70,6 @@ function crInitRowDispatch() {
 
 const rentPSFC = 4;  // hardwired rent column
 const rentAnnC = 5;  // hardwired annual expense column
-const monthsDefault = 36;  // should move to class or .ini file
 function crAddlRow(ss) {
   var fS = "crAddlRow";
   var errS = "Problem creating additional row!"
@@ -75,7 +77,7 @@ function crAddlRow(ss) {
     var startFromEndS = '=INDIRECT("R[-1]C[2]",FALSE)+1';  // hardwired difference
     // var priorRent = `=INDIRECT("R[-1]C[2]",FALSE)`;
     // var rsf = ss.getRangeByName('RSF').getValue();
-    var brRow = crBaseRentRow(startFromEndS, monthsDefault, nominalRent);
+    var brRow = crBaseRentRow(startFromEndS, monthsDefaultG, nominalRentG);
     ss.getActiveSheet().appendRow(brRow);
     var lr = ss.getLastRow();
     var ss2 = SpreadsheetApp.getActiveSpreadsheet();
@@ -83,10 +85,10 @@ function crAddlRow(ss) {
     // Passing only two arguments returns a "range" with a single cell.
     sheet.getRange(lr, rentPSFC).setNumberFormat("$#,##0.00;$(#,##0.00)");
     sheet.getRange(lr, rentAnnC).setNumberFormat("$#,##0;$(#,##0)");
-  } catch (e) {
-    Logger.log(`In ${fS}: error: ${e}`);
+  } catch (err) {
+    Logger.log(`In ${fS}: error: ${err}`);
     SpreadsheetApp.getUi() // Or DocumentApp or FormApp.
-      .alert(`${e}`);
+      .alert(`${err}`);
   }
   return "Inital row created"
 }
@@ -115,12 +117,10 @@ function formatCurrency(range) {
   range.setNumberFormat("$#,##0.00;$(#,##0.00)");
 }
 
-/*******************PROPOSAL SHEET**************************** */
+/******************* CREATE PROPOSAL SHEET**************************** */
 /**
  * Purpose: Create proposal sheet, put names and  ids   into sheet
  *
- * @param  {String} param_name - param
- * @param  {itemReponse[]} param_name - an array of responses 
  * @return {String} retS - return value
  */
 function crProposalSheet() {
@@ -142,6 +142,7 @@ function crProposalSheet() {
   }
   var propA = getProposalNamesAndIDs(dbInst,userEmail);
   var retS = populateSheet(ss, propA);
+  dbInst.closeconn();
   return retS;
 }
 
@@ -155,18 +156,28 @@ function crProposalSheet() {
 function populateSheet(ss, propA) {
   var errS = "Can't populate sheet"
   try {
+    // first clear out the sheet
+    var maxRowsS = ss.getLastRow().toString();
+    const rangeExistingS = [`A2:B${maxRowsS}`];  // Leave heading
+    const initialR = ss.getRange(rangeExistingS);
+    initialR.clearContent();
+
+
     const rangeS = ["A2:", "B", propA.length + 1].join("");
-    var ssRange = ss.getRange(rangeS);
+    const ssRange = ss.getRange(rangeS);
     ssRange.setValues(propA);
-    var ssBR = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
+    const ssBR = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
     // Logger.log(ssBR.getName());
-    var cellPID = ssBR.getRange("pid");
+    const cellPID = ssBR.getRange("pid");
+    const pid = cellPID.getValue();
     cellPID.setFormula("=VLOOKUP(B2,Proposals!A2:B6,2,FALSE)");
+   const dbInst = new databaseC("applesmysql");
+   var propRSF = getRSFfromPID(dbInst,pid);
   }
-  catch (e) {
-    Logger.log(`${errS}: ${e}`);
+  catch (err) {
+    Logger.log(`${errS}: ${err}`);
     SpreadsheetApp.getUi() // Or DocumentApp or FormApp.
-      .alert(`${errS}: ${e}`);
+      .alert(`${errS}: ${err}`);
     return -1;
   }
   return "Success"
@@ -188,7 +199,9 @@ function exportBR(dbInst) {
     var alreadyBR = matchingBRProposalID(dbInst, cellPID); // already br for this proposal?
     if (alreadyBR) {
       var updateYN = duplicateBRAlert();
-      if (updateYN) { var ret = deleteFromTable(dbInst, "base_rent", cellPID); }
+      if (updateYN) { 
+        var ret = deleteFromTable(dbInst, "base_rent", cellPID); 
+        }
       else { return }
     }
     var lrS = ssBR.getLastRow().toString(); // last row string
@@ -262,8 +275,8 @@ function duplicateBRAlert() {
       ui.alert('Canceled');
       return false
     }
-  } catch (e) {
-    ui.alert(`Error in duplicateBRAlert: ${e}`);
+  } catch (err) {
+    ui.alert(`Error in duplicateBRAlert: ${err}`);
     return false
   }
 
@@ -368,4 +381,61 @@ function testExportBR() {
   var dbInst = new databaseC("applesmysql");
   retS = exportBR(dbInst);
 
+}
+
+function runTests() {
+  var dbInst = new databaseC("applesmysql");
+
+  var userS = userEmail;
+  var testPID = '50fcd535-edb2-11eb-93f1-42010a800005';  // rsf should be 965 as a string
+  const test = new UnitTestingApp();
+  test.enable(); // tests will run below this line
+  test.runInGas(true);
+  if (test.isEnabled) {
+
+  test.assert(testgetRSFfromPID(testPID)==="965",`testgetRSFfromPID with ${testPID}`)  
+    // test.assert(testProposalNamesAndIDs(userS), `gcloudSQL.getProposalNamesAndIDs with user ${userS}`);
+    // test.assert(testgetCurrPropID(),`testgetCurrPropID shows a current proposal ID`);
+    // test.assert(evalPOResponses(form), `evalPOResponses`);
+    // test.assert(questionToClauseKey(dbInst, validQS), `questionToClauseKey with question '${validQS}'' in ck_question`);
+    // test.assert(testGetProposalData(dbInst, userS), `testGetProposalData with user '${userS}' in proposal data`);
+    // test.assert(emptyCk_Question(), 'emptyCk_Question');
+    // test.assert(writeAllQuestionsKeys(), 'writeAllQuestionsKeys');
+  }
+  dbInst.closeconn();
+}
+
+/**
+ * Purpose: get information stored in JSON file, use for default
+ * rents, free rent, and term
+ * 
+ *
+ * @param  {object} dbInst - instance of database class
+ * @param  {object} docInst - instance of document class
+ * @return {String} retS - return value
+ */
+ function handleJSON(dbInst, docInst) {
+  var fS = "handleJSON", probS, retS;
+  var userPrefixS = userEmail.split('@')[0];
+  var fileName = userPrefixS + ".json";
+  try {
+    // var fileName = "mcolacino.json";
+    var files = DriveApp.getFilesByName(fileName);
+    if (files.hasNext()) {
+      var file = files.next();
+      var content = file.getBlob().getDataAsString();
+      var json = JSON.parse(content);
+    }
+
+    if (json.nominalFreeRent) { nominalFreeRentG = json.nominalFreeRent }
+    if (json.nominalRent) {nominalRentG = json.nominalRent }
+    if (json.nominalTerm) { nominalTermG = json.nominalTerm }
+    if (json.monthsDefault) { monthsDefaultG = json.monthsDefault }
+    
+  } catch (err) {
+    probS = `In ${fS}: ${err}`
+    console.log(probS);
+    return false
+  }
+  return true
 }
