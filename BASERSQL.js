@@ -541,7 +541,7 @@ function getProposalNamesAndIDs(dbInst,userS = "mcolacino@squarefoot.com") {
   var jsonyn = false;
   var retA = readFromTable(dbInst, tableNameS, colNameS, searchS, jsonyn);
   var propNameIDA = retA.map(function (record) {
-    return [record.proposalname, record.proposalid]
+    return [record.proposalname, record.proposalid,record.current]
   });
   console.log(propNameIDA)
   return propNameIDA
@@ -776,4 +776,40 @@ function testgetRSFfromPID(pid){
   var rsf = getRSFfromPID(dbInst,pid);
   console.log(rsf);
   return rsf
+}
+
+/**
+ * Purpose: get current proposal from db
+ *
+ * @param  {object} dbInst - instance of databaseC
+ * @param  {string} userS - name of current user
+ * @return {boolean[]} [pid, pN] or [false,false]
+ */
+
+ function getCurrentProposal(dbInst, userS) {
+  const fS = "getCurrentProposal";
+   var pid = "";
+   var pN = "";
+  try {
+    const locConn = dbInst.getconn(); // get connection from the instance
+
+    const qryS = `SELECT ProposalID, ProposalName FROM proposals WHERE current=true;`;
+    const stmt = locConn.prepareStatement(qryS);
+    const results = stmt.executeQuery(qryS);
+    var cntr = 0;
+    while (results.next()) { // the resultSet cursor moves forward with next; ends with false when at end
+      pid = results.getString("ProposalID");
+      pN = results.getString("ProposalName");
+      cntr++;
+      // column can either be by number or by string 
+    }
+    if (cntr === 0 || pid==="") { throw new Error(`no current proposal`) }
+    if (cntr > 1) { throw new Error(`more than one current proposal`) }
+    return [pid,pN]
+
+  } catch (err) {
+    const probS = `In ${fS}: error ${err}`;
+    console.log(probS);
+    return [false,false] 
+  }
 }
