@@ -1,5 +1,6 @@
 // 210727 9:49
 // 210802 8:35
+// 210803 12:52
 /**
  * Purpose: read row(s) up to maxRows from database using dbInst for connection
  * 
@@ -37,7 +38,7 @@ function readFromTable(dbInst, tableNameS, colS, searchS, jsonyn = true) {
   }
   var dataA = [];
   while (results.next()) {  // the resultSet cursor moves forward with next; ends with false when at end
-    recA = [];
+    var recA = [];
     for (var col = 0; col < numCols; col++) {
       recA.push(results.getString(col + 1));  // create inner array(s)
     }
@@ -47,7 +48,7 @@ function readFromTable(dbInst, tableNameS, colS, searchS, jsonyn = true) {
   logLoc ? Logger.log(dataA) : true;
 
   /**************************now get the header names ************************** */
-  var qryS = `SHOW COLUMNS FROM ${tableNameS};`
+  qryS = `SHOW COLUMNS FROM ${tableNameS};`
   try {
     var colA = dbInst.getcolumns(tableNameS);
     //stmt2 = locConn.createStatement();
@@ -70,6 +71,7 @@ function readFromTable(dbInst, tableNameS, colS, searchS, jsonyn = true) {
   // stmt2.close();
   // Create backward-compatible json structure to mimic REST calls to Airtable
   var retA = [];
+  var j;
   for (j in rowA) {
     var retObj = new Object();
     retObj["fields"] = rowA[j];
@@ -125,7 +127,7 @@ function readInListFromTable(dbInst, tableNameS, colS, inListS) {
   }
   var dataA = [];
   while (results.next()) {  // the resultSet cursor moves forward with next; ends with false when at end
-    recA = [];
+    var recA = [];
     for (var col = 0; col < numCols; col++) {
       recA.push(results.getString(col + 1));  // create inner array(s)
     }
@@ -135,16 +137,16 @@ function readInListFromTable(dbInst, tableNameS, colS, inListS) {
   logLoc ? Logger.log(dataA) : true;
 
   /**************************now get the header names ************************** */
-  var qryS = `SHOW COLUMNS FROM ${tableNameS};`
+  qryS = `SHOW COLUMNS FROM ${tableNameS};`
   try {
-    stmt2 = locConn.createStatement();
+    var stmt2 = locConn.createStatement();
     var colA = [];
     var cols = stmt2.executeQuery(qryS);
     while (cols.next()) {
       colA.push(cols.getString(1));
     }
   } catch (err) {
-    var problemS = `In ${fS} problem with executing query : ${err}`
+    problemS = `In ${fS} problem with executing query : ${err}`
     Logger.log(problemS);
     return problemS
   }
@@ -175,7 +177,7 @@ function readAllFromTable(dbInst, tableNameS) {
   /*********connect to database ************************************ */
   try {
     var locConn = dbInst.getconn(); // get connection from the instance
-    logReadAllFromTable ? Logger.log(locConn.toString()) : true;
+    logLoc ? Logger.log(locConn.toString()) : true;
 
     var stmt = locConn.createStatement();
     stmt.setMaxRows(maxRows);
@@ -189,23 +191,23 @@ function readAllFromTable(dbInst, tableNameS) {
     var results = stmt.executeQuery(qryS);
     var numCols = results.getMetaData().getColumnCount();
   } catch (err) {
-    Logger.log(`In ${fS} problem with executing ${colS} = ${searchS} query : ${err}`);
+    Logger.log(`In ${fS} problem with query`);
     return false
   }
   var dataA = [];
   while (results.next()) {  // the resultSet cursor moves forward with next; ends with false when at end
-    recA = [];
+    var recA = [];
     for (var col = 0; col < numCols; col++) {
       recA.push(results.getString(col + 1));  // create inner array(s)
     }
     dataA.push(recA); // push inner array into outside array
   }
-  logReadAllFromTable ? Logger.log(dataA) : true;
+  logLoc ? Logger.log(dataA) : true;
 
   /**************************now get the header names ************************** */
-  var qryS = `SHOW COLUMNS FROM ${tableNameS};`
+  qryS = `SHOW COLUMNS FROM ${tableNameS};`
   try {
-    stmt2 = locConn.createStatement();
+    var stmt2 = locConn.createStatement();
     var colA = [];
     var cols = stmt2.executeQuery(qryS);
     while (cols.next()) {
@@ -217,11 +219,12 @@ function readAllFromTable(dbInst, tableNameS) {
     return problemS
   }
   var rowA = splitRangesToObjects(colA, dataA); // utility function in objUtil.gs
-  logReadAllFromTable ? Logger.log(rowA) : true;
+  logLoc ? Logger.log(rowA) : true;
   results.close();
   stmt.close();
   stmt2.close();
   var retA = [];
+  var j;
   for (j in rowA) {
     var retObj = new Object();
     retObj["fields"] = rowA[j];
@@ -266,13 +269,14 @@ function writeToTable(dbInst, tableNameS, recordA) {
     var colAtmp = dbInst.getcolumns(tableNameS);
     // creat an array of column names
     var colA = [];
+    var i;
     for (i = 0; i < colAtmp.length; i++) {
       colA.push(colAtmp[i]);
     }
     // filter out columns we don't want to insert, specifically autoincrements
     switch (tableNameS) {
       case "base_rent":
-        const colAtmp = colA.filter(col => col != "BaseRentID");
+        colAtmp = colA.filter(col => col != "BaseRentID");
         colA = colAtmp;
         break;
       default:
@@ -280,7 +284,6 @@ function writeToTable(dbInst, tableNameS, recordA) {
     }
     if (colA.length != recordA.length) {
       throw new Error(`number of columns ${colA.length} diff from record param ${recordA.length}`)
-      return -1
     }
     var recMod = recordA.map(rec => {
       if (typeof rec != 'number') {
@@ -291,8 +294,8 @@ function writeToTable(dbInst, tableNameS, recordA) {
     var colS = colA.join();
     var recordS = recMod.join();
     var qryS = `INSERT INTO ${tableNameS}(${colS}) VALUES(${recordS});`;
-    var locConn = dbInst.getconn(); // get connection from the instance
-    var stmt = locConn.prepareStatement(qryS);
+    locConn = dbInst.getconn(); // get connection from the instance
+    stmt = locConn.prepareStatement(qryS);
     stmt.execute();
 
     Logger.log(qryS);
@@ -303,31 +306,6 @@ function writeToTable(dbInst, tableNameS, recordA) {
     return false
   }
   return true
-}
-
-/**
- * Purpose: Join spaces and buildings (view?) to get SpaceID / Floor / Suite / Square Footage
- *
- * @param  {String} param_name - param
- * @param  {itemReponse[]} param_name - an array of responses 
- * @return {String} retS - return value
- */
-const logGetSpaceDisplay = false;
-function getSpaceDisplay(userS = "mcolacino@squarefoot.com") {
-  var dbInst = new databaseC("applesmysql");
-  var fS, sS, ssS;
-  var tableNameS = "display_spaces"; // this is actually a view but should work the same
-
-  var ret = readAllFromTable(dbInst, tableNameS);
-  var spaceA = ret.map(record => {
-    return {
-      sdesc: record.fields.displayspace,
-      sidentity: record.fields.spaceidentity  // note that somewhere along the way underscore gets stripped
-    }
-  })
-  logGetSpaceDisplay ? Logger.log(spaceA) : true;
-  return spaceA
-
 }
 
 /** 
@@ -387,7 +365,6 @@ function getNamedProposalData(dbInst, proposalNameS, userS = "mcolacino@squarefo
     return pObj
   } else {
     throw new Error(`${proposalNameS} has ${propDataA.length} records.`);
-    return -1
   }
 }
 
@@ -440,6 +417,7 @@ function writeProposal(dbInst, record) {
   var colS = "ProposalID,ProposalName,space_identity,TenantName,ProposalSize,CreatedBy,CreatedWhen,ModifiedWhen,ModifiedBy";
   var valA = Object.values(record);
   var recordS = "";
+  var i;
   for (i = 0; i < valA.length; i++) {
     if (i < (valA.length - 1)) {
       recordS = recordS + "'" + valA[i] + "',";
@@ -479,18 +457,16 @@ function deleteFromTable(dbInst, tableNameS, selectS) {
       break;
     default:
       throw new Error("Attempting to delete from undefined table");
-      return false
-      break;
   }
   try {
     var locConn = dbInst.getconn(); // get connection from the instance
-    var stmt = locConn.createStatement();
     var qryS = `DELETE FROM ${tableNameS} where ${colS} = '${selectS}';`
     Logger.log(qryS);
     locConn.createStatement().execute(qryS);
 
   } catch (err) {
     Logger.log(`${fS}: ${err}`)
+    return false
   }
   return true
 }
@@ -535,7 +511,6 @@ function matchingBRProposalID(dbInst, propID) {
   */
 
 function getProposalNamesAndIDs(dbInst, userS = "mcolacino@squarefoot.com") {
-  var dbInst = new databaseC("applesmysql");
   var tableNameS = "proposals";
   var colNameS = "CreatedBy";
   var searchS = userS;
@@ -548,32 +523,7 @@ function getProposalNamesAndIDs(dbInst, userS = "mcolacino@squarefoot.com") {
   return propNameIDA
 }
 
-/**
- * Purpose: Join spaces and buildings (view?) to get SpaceID / Floor / Suite / Square Footage
- *
- * @param  {String} param_name - param
- * @param  {itemReponse[]} param_name - an array of responses 
- * @return {String} retS - return value
- */
-const logGetAddressSuitFloorSF = false;
-function getAddressSuiteFloorSF(userS = "mcolacino@squarefoot.com") {
-  var dbInst = new databaseC("applesmysql");
-  var fS, sS, ssS;
-  var tableNameS = "sub_spaces"; // this is actually a view but should work the same
 
-  var ret = readAllFromTable(dbInst, tableNameS);
-  var spaceA = ret.map(record => {
-    record.fields.suite ? sS = "/ S: " + record.fields.suite : sS = "";
-    record.fields.floor ? fS = "/ F: " + record.fields.floor : fS = "";
-    record.fields.squarefeet ? ssS = "/ SF: " + new Intl.NumberFormat().format(record.fields.squarefeet) : ssS = "";
-    return {
-      sdesc: `${record.fields.address} ${sS} ${fS} ${ssS}`,
-      sidentity: record.fields.spaceidentity
-    }
-  })
-  logGetAddressSuitFloorSF ? Logger.log(spaceA) : true;
-  return spaceA
-}
 
 function getRSFfromPID(dbInst, pid) {
   var fS = "getRSFfromPID";
@@ -682,11 +632,11 @@ function isDigit_(char) {
  */
 function objectToArray(headers, objValues) {
   var values = [];
-  var headers = camelArray(headers);
+  var h = camelArray(headers);
   for (var j = 0; j < objValues.length; j++) {
     var rowValues = [];
-    for (var i = 0; i < headers.length; i++) {
-      rowValues.push(objValues[j][headers[i]]);
+    for (var i = 0; i < h.length; i++) {
+      rowValues.push(objValues[j][h[i]]);
     }
     values.push(rowValues);
   }
@@ -743,6 +693,7 @@ function camelArray(headers) {
 function testMatchingBRProposalID() {
   var dbInst = new databaseC("applesmysql");
   var ret = matchingBRProposalID(dbInst, 1);
+  return ret
 
 }
 
@@ -765,6 +716,7 @@ function testReadFromProposals() {
   var dbInst = new databaseC("applesmysql");
   var tableNameS = "proposals";
   var colNameS = "CreatedBy";
+  // eslint-disable-next-line no-undef
   var searchS = userEmail;
   var jsonyn = false;
   var retA = readFromTable(dbInst, tableNameS, colNameS, searchS, jsonyn); // all rows in section Electric
@@ -852,6 +804,7 @@ WHERE (ProposalClauseKey='commDate' OR  ProposalClauseKey='leaseTerm') and Propo
 
 function testgetCommenceAndTermForCurrent(){
   const dbInst = new databaseC("applesmysql");
+  // eslint-disable-next-line no-undef
   var [propID,propName] = getCurrentProposal(dbInst,userEmail);
   var [cd,lt]=getCommenceAndTermForCurrent(dbInst,propID);
   console.log(`${cd} and ${lt}`);
