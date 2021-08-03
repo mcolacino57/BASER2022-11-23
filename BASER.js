@@ -1,5 +1,6 @@
 // 210802 4:13
 // 210802 11:10
+// 210803 9:31
 var nominalFreeRentG = "6";
 var nominalRentG = "60";
 var nominalTermG = "36";
@@ -13,13 +14,14 @@ Logger = BetterLog.useSpreadsheet(ssLogID);
 function onOpen(e) {
   var spreadsheet = SpreadsheetApp.getActive();
   var menuItems = [
-    // { name: 'Get Proposals', functionName: 'crProposalSheet' },
     { name: 'Create Initial Row', functionName: 'crInitRowDispatch' },
     { name: 'Create Additional Row', functionName: 'crAddlRowDispatch' },
     { name: 'Export Base Rent', functionName: 'exportBRDBDispatch' }
   ];
   spreadsheet.addMenu('Base Rent', menuItems);
-  var ret = populateSheet();
+  var ret = handleJSON(); // set globals from username.json
+  ret = populateSheet();
+
 }
 
 /**
@@ -33,12 +35,11 @@ function onOpen(e) {
 const lastRow = 4; // hardwired
 function crInitRow(ss) {
   var fS = "crInitRow";
-  var errS = "Problem creating initial row!"
   try {
     var lr = ss.getLastRow();
     if (lr > lastRow) {
       throw new Error(`Last row is ${lr}; delete all rows past ${lastRow}`);
-      return errS
+      return false
     }
     var brRow = crBaseRentRow("=InitialDate", nominalFreeRentG, 0);
     ss.appendRow(brRow);
@@ -48,12 +49,13 @@ function crInitRow(ss) {
     SpreadsheetApp.getUi() // Or DocumentApp or FormApp.
       .alert(`${err}`);
   }
-  return "Inital row created"
+  return true
 }
 
 function crInitRowDispatch() {
   var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var retS = crInitRow(ss);
+  var ret = crInitRow(ss);
+  return ret
 }
 
 /**
@@ -69,32 +71,28 @@ function crInitRowDispatch() {
 
 const rentPSFC = 4;  // hardwired rent column
 const rentAnnC = 5;  // hardwired annual expense column
-function crAddlRow(ss) {
+function crAddlRow() {
   var fS = "crAddlRow";
   var errS = "Problem creating additional row!"
   try {
+    var ssBR = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Base Rent Schedule");
     var startFromEndS = '=INDIRECT("R[-1]C[2]",FALSE)+1';  // hardwired difference
-    // var priorRent = `=INDIRECT("R[-1]C[2]",FALSE)`;
-    // var rsf = ss.getRangeByName('RSF').getValue();
     var brRow = crBaseRentRow(startFromEndS, monthsDefaultG, nominalRentG);
-    ss.getActiveSheet().appendRow(brRow);
-    var lr = ss.getLastRow();
-    var ss2 = SpreadsheetApp.getActiveSpreadsheet();
-    var sheet = ss2.getSheets()[0];
-    // Passing only two arguments returns a "range" with a single cell.
-    sheet.getRange(lr, rentPSFC).setNumberFormat("$#,##0.00;$(#,##0.00)");
-    sheet.getRange(lr, rentAnnC).setNumberFormat("$#,##0;$(#,##0)");
+    ssBR.appendRow(brRow);
+    var lr = ssBR.getLastRow();
+    ssBR.getRange(lr, rentPSFC).setNumberFormat("$#,##0.00;$(#,##0.00)");
+    ssBR.getRange(lr, rentAnnC).setNumberFormat("$#,##0;$(#,##0)");
   } catch (err) {
     Logger.log(`In ${fS}: error: ${err}`);
     SpreadsheetApp.getUi() // Or DocumentApp or FormApp.
       .alert(`${err}`);
+      return false
   }
-  return "Inital row created"
+  return true
 }
 
 function crAddlRowDispatch() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();;
-  var retS = crAddlRow(ss);
+  var retS = crAddlRow();
 }
 
 /**
@@ -116,51 +114,6 @@ function formatCurrency(range) {
   range.setNumberFormat("$#,##0.00;$(#,##0.00)");
 }
 
-/******************* CREATE PROPOSAL SHEET**************************** */
-/**
- * Purpose: Create proposal sheet, put names and  ids   into sheet
- *
- * @return {String} retS - return value
- */
-
-/**  Radical changes on 210802
- * 1. Eliminate concept of proposal sheet in favor of idea of a proposal cell set
- * based on the current proposal
- * 2. Therefor eliminate VLOOKUP based on what is happening in cell B2, and instead just
- * poke the current Proposal Name and PID in b2 and b3 or into range 'pid'
- * 4. Eliminate the dropdown function in the spreadsheet
- * 5. Get the RSF from the current proposal and poke that into 'RSF'
- * 6. Extra credit: acquire the initial date from the prop_gen table and poke that into the assumptions sheet
-*/
-// function crProposalSheet() {
-//   var fS = "crProposalSheet"
-//   var errS = "Can't find or create Proposals sheet";
-//   var dbInst = new databaseC("applesmysql");
-//   try {
-//     var ss = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Proposals");  // make proosals active or create
-//     if (!ss) {
-//       var ss = SpreadsheetApp.getActiveSpreadsheet().insertSheet().setName("Proposals");
-//     }
-//   }
-//   catch (err) {
-//     var probS = `${errS}: ${err}`;
-//     Logger.log(probS);
-//     SpreadsheetApp.getUi() // Or DocumentApp or FormApp.
-//       .alert(probS);
-//     return false;
-//   }
-//   var propA = getProposalNamesAndIDs(dbInst,userEmail);
-//   // Need to get the current proposal ID, and use that to get
-//   // the rsf
-//   // More generally should the base rent function just
-//   // look at the current proposal--this would greatly simplify
-//   // the functionality
-//   var currPropID = getCurrentProposal(dbInst,userEmail);
-//   var ret = populateSheet(ss,currPropID);  if this goes back in, add older version
-
-//   dbInst.closeconn();
-//   return ret;
-// }
 // Major changes on 210802
 /**
  * Purpose: populate sheet with data from current proposal
@@ -177,9 +130,9 @@ function populateSheet() {
     var rsf = getRSFfromPID(dbInst, propID);
     var [commDate, leaseTerm] = getCommenceAndTermForCurrent(dbInst, propID);
     var ssBR = SpreadsheetApp.getActive().getSheetByName('Base Rent Schedule');
-    // if(!ssBR) { throw new Error(`can't get sheet for Base Rent Schedule`)};s
+    if (!ssBR) { throw new Error(`can't get sheet for Base Rent Schedule`) };
     var ssAssum = SpreadsheetApp.getActive().getSheetByName('Assumptions');
-    // if(!ssAssum) { throw new Error(`can't get sheet for Assumptions`)};
+    if (!ssAssum) { throw new Error(`can't get sheet for Assumptions`) };
     var pidRange = ssBR.getRange('pid');
     var pnameRange = ssBR.getRange('propName');
     var rsfRange = ssAssum.getRange('RSF');
@@ -191,32 +144,14 @@ function populateSheet() {
     pidRange.setValues([[propID]]);
     rsfRange.setValues([[rsf]]);
     pnameRange.setValues([[propName]]);
-
-    // first clear out the sheet
-    //   var maxRowsS = ss.getLastRow().toString();
-    //   const rangeExistingS = [`A2:B${maxRowsS}`];  // Leave heading
-    //   const initialR = ss.getRange(rangeExistingS);
-    //   initialR.clearContent();
-    //   const rangeS = ["A2:", "B", propA.length + 1].join("");
-    //   const ssRange = ss.getRange(rangeS);
-    //   ssRange.setValues(propA);
-    //   const ssBR = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
-    //   const ssAssum = SpreadsheetApp.getActiveSpreadsheet().getSheets()[2];
-    //   // Logger.log(ssBR.getName());
-    //   const rsfRange = ssAssum.getRange("RSF");
-    //   const cellPID = ssBR.getRange("pid");
-    //   const pid = cellPID.getValue();
-    //   cellPID.setFormula("=VLOOKUP(B2,Proposals!A2:B6,2,FALSE)");
-    //  const dbInst = new databaseC("applesmysql");
-    //  var propRSF = getRSFfromPID(dbInst,pid);
   }
   catch (err) {
-    Logger.log(`In ${fS} ${errS} and ${err}`);
+    Logger.log(`In ${fS}: ${err}`);
     SpreadsheetApp.getUi() // Or DocumentApp or FormApp.
       .alert(`${errS}: ${err}`);
     return false;
   }
-  return "Success"
+  return true
 }
 
 /************************EXPORT BASE RENT************************* */
@@ -419,17 +354,30 @@ function testExportBR() {
 
 }
 
+function testHandleJSON() {
+  var ret = handleJSON();
+  if (nominalFreeRentG == "6"
+    && nominalRentG == "60.00"
+    && nominalTermG == "36"
+    && monthsDefaultG == "12") { return true }
+  return false
+}
+
 function runTests() {
   var dbInst = new databaseC("applesmysql");
 
   var userS = userEmail;
   var testPID = '50fcd535-edb2-11eb-93f1-42010a800005';  // rsf should be 965 as a string
+
+
   const test = new UnitTestingApp();
   test.enable(); // tests will run below this line
   test.runInGas(true);
   if (test.isEnabled) {
 
     test.assert(testgetRSFfromPID(testPID) === "965", `testgetRSFfromPID with ${testPID}`);
+    test.assert(testHandleJSON(), `testHandleJSON`);
+    test.assert(populateSheet(), `populateSheet`);
 
     // test.assert(testProposalNamesAndIDs(userS), `gcloudSQL.getProposalNamesAndIDs with user ${userS}`);
     // test.assert(testgetCurrPropID(),`testgetCurrPropID shows a current proposal ID`);
@@ -451,7 +399,7 @@ function runTests() {
  * @param  {object} docInst - instance of document class
  * @return {String} retS - return value
  */
-function handleJSON(dbInst, docInst) {
+function handleJSON() {
   var fS = "handleJSON", probS;
   var userPrefixS = userEmail.split('@')[0];
   var fileName = userPrefixS + ".json";
