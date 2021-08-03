@@ -1,4 +1,5 @@
 // 210802 4:13
+// 210802 11:10
 var ss = SpreadsheetApp.getActiveSpreadsheet();
 var nominalFreeRentG = "6";
 var nominalRentG = "60";
@@ -172,12 +173,13 @@ function formatCurrency(range) {
  * @return {String} retS - return value
  */
 function populateSheet() {
+  var fS = "populateSheet";
   var errS = "Can't populate sheet";
-
   try {
     const dbInst = new databaseC("applesmysql");
-    var [propID,propName] = getCurrentProposal(dbInst, userEmail);
-    var rsf = getRSFfromPID(dbInst,propID);
+    var [propID, propName] = getCurrentProposal(dbInst, userEmail);
+    var rsf = getRSFfromPID(dbInst, propID);
+    var [commDate, leaseTerm] = getCommenceAndTermForCurrent(dbInst, propID);
     var ssBR = SpreadsheetApp.getActive().getSheetByName('Base Rent Schedule');
     // if(!ssBR) { throw new Error(`can't get sheet for Base Rent Schedule`)};s
     var ssAssum = SpreadsheetApp.getActive().getSheetByName('Assumptions');
@@ -185,7 +187,11 @@ function populateSheet() {
     var pidRange = ssBR.getRange('pid');
     var pnameRange = ssBR.getRange('propName');
     var rsfRange = ssAssum.getRange('RSF');
+    var commDateRange = ssAssum.getRange('InitialDate');
+    var leaseTermRange = ssAssum.getRange('LeaseTermMons');
 
+    commDateRange.setValues([[commDate]]);
+    leaseTermRange.setValues([[leaseTerm]]);
     pidRange.setValues([[propID]]);
     rsfRange.setValues([[rsf]]);
     pnameRange.setValues([[propName]]);
@@ -209,7 +215,7 @@ function populateSheet() {
     //  var propRSF = getRSFfromPID(dbInst,pid);
   }
   catch (err) {
-    Logger.log(`${errS}: ${err}`);
+    Logger.log(`In ${fS} ${errS} and ${err}`);
     SpreadsheetApp.getUi() // Or DocumentApp or FormApp.
       .alert(`${errS}: ${err}`);
     return false;
