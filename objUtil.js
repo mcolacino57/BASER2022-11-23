@@ -30,11 +30,11 @@
  */
 function objectToArray(headers, objValues){
   var values = [];  
-  var headers = camelArray(headers);  
+  var h = camelArray(headers);  
   for (var j=0; j < objValues.length; j++){
     var rowValues = [];
-    for (var i=0; i < headers.length; i++){
-      rowValues.push(objValues[j][headers[i]]);
+    for (var i=0; i < h.length; i++){
+      rowValues.push(objValues[j][h[i]]);
     }  
     values.push(rowValues);
   } 
