@@ -1,6 +1,5 @@
 // 210802 4:13
 // 210802 11:10
-
 var nominalFreeRentG = "6";
 var nominalRentG = "60";
 var nominalTermG = "36";
