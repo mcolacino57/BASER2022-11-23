@@ -1,11 +1,10 @@
-// 210802 4:13
 // 210802 11:10
 // 210803 9:31
+// 210803 9:49
 var nominalFreeRentG = "6";
 var nominalRentG = "60";
 var nominalTermG = "36";
 var monthsDefaultG = "12";
-
 
 const userEmail = Session.getActiveUser().getEmail();
 const ssLogID = '1l3EYsH7UJFUfuFORFF7GNxPM2jwLZlSh_0xSgSDTOPo';
@@ -14,9 +13,9 @@ Logger = BetterLog.useSpreadsheet(ssLogID);
 function onOpen(e) {
   var spreadsheet = SpreadsheetApp.getActive();
   var menuItems = [
-    { name: 'Create Initial Row', functionName: 'crInitRowDispatch' },
-    { name: 'Create Additional Row', functionName: 'crAddlRowDispatch' },
-    { name: 'Export Base Rent', functionName: 'exportBRDBDispatch' }
+    { name: 'Create Initial Row', functionName: 'crInitRow' },
+    { name: 'Create Additional Row', functionName: 'crAddlRow' },
+    { name: 'Export Base Rent', functionName: 'exportBR' }
   ];
   spreadsheet.addMenu('Base Rent', menuItems);
   var ret = handleJSON(); // set globals from username.json
@@ -29,20 +28,20 @@ function onOpen(e) {
  * Create row with start date=InitialDate, formula for end date, RSF, and 
  * formula for annual rent
  * 
- * @param  {object} ss - spreadsheet (global, later class)
- * @return {String} retS - return value
+ * @return {Boolean} true/false
  */
 const lastRow = 4; // hardwired
-function crInitRow(ss) {
+function crInitRow() {
   var fS = "crInitRow";
   try {
-    var lr = ss.getLastRow();
+    var sheetBR = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Base Rent Schedule");
+    var lr = sheetBR.getLastRow();
     if (lr > lastRow) {
       throw new Error(`Last row is ${lr}; delete all rows past ${lastRow}`);
       return false
     }
     var brRow = crBaseRentRow("=InitialDate", nominalFreeRentG, 0);
-    ss.appendRow(brRow);
+    sheetBR.appendRow(brRow);
 
   } catch (err) {
     Logger.log(`In ${fS}: ${err}`);
@@ -52,12 +51,6 @@ function crInitRow(ss) {
   return true
 }
 
-function crInitRowDispatch() {
-  var ss = SpreadsheetApp.getActiveSpreadsheet();
-  var ret = crInitRow(ss);
-  return ret
-}
-
 /**
  * Purpose: additional base rent rows
  * Create row with start date=prior end date, formula for end date, RSF, and 
@@ -65,8 +58,7 @@ function crInitRowDispatch() {
  * 
  * NOTE: Column numbers are hardwired here an changes to the sheet might need changes
  * 
- * @param  {object} ss - spreadsheet (global, later class)
- * @return {String} retS - return value
+ * @return {Boolean} true/false
  */
 
 const rentPSFC = 4;  // hardwired rent column
@@ -75,13 +67,13 @@ function crAddlRow() {
   var fS = "crAddlRow";
   var errS = "Problem creating additional row!"
   try {
-    var ssBR = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Base Rent Schedule");
+    var sheetBR = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Base Rent Schedule");
     var startFromEndS = '=INDIRECT("R[-1]C[2]",FALSE)+1';  // hardwired difference
     var brRow = crBaseRentRow(startFromEndS, monthsDefaultG, nominalRentG);
-    ssBR.appendRow(brRow);
-    var lr = ssBR.getLastRow();
-    ssBR.getRange(lr, rentPSFC).setNumberFormat("$#,##0.00;$(#,##0.00)");
-    ssBR.getRange(lr, rentAnnC).setNumberFormat("$#,##0;$(#,##0)");
+    sheetBR.appendRow(brRow);
+    var lr = sheetBR.getLastRow();
+    sheetBR.getRange(lr, rentPSFC).setNumberFormat("$#,##0.00;$(#,##0.00)");
+    sheetBR.getRange(lr, rentAnnC).setNumberFormat("$#,##0;$(#,##0)");
   } catch (err) {
     Logger.log(`In ${fS}: error: ${err}`);
     SpreadsheetApp.getUi() // Or DocumentApp or FormApp.
@@ -89,10 +81,6 @@ function crAddlRow() {
       return false
   }
   return true
-}
-
-function crAddlRowDispatch() {
-  var retS = crAddlRow();
 }
 
 /**
@@ -103,7 +91,6 @@ function crAddlRowDispatch() {
  * @param {string} rentPSF - string but dollar value
  * @return {array}  - returns array of four strings
  */
-
 function crBaseRentRow(startDateS, months, rentPSF) {
   var endS = '=EDATE(INDIRECT("R[0]C[-2]",FALSE),INDIRECT("R[0]C[-1]",FALSE))-1';
   var annRS = '=INDIRECT("R[0]C[-1]",FALSE)*RSF';
@@ -129,12 +116,12 @@ function populateSheet() {
     var [propID, propName] = getCurrentProposal(dbInst, userEmail);
     var rsf = getRSFfromPID(dbInst, propID);
     var [commDate, leaseTerm] = getCommenceAndTermForCurrent(dbInst, propID);
-    var ssBR = SpreadsheetApp.getActive().getSheetByName('Base Rent Schedule');
-    if (!ssBR) { throw new Error(`can't get sheet for Base Rent Schedule`) };
+    var sheetBR = SpreadsheetApp.getActive().getSheetByName('Base Rent Schedule');
+    if (!sheetBR) { throw new Error(`can't get sheet for Base Rent Schedule`) };
     var ssAssum = SpreadsheetApp.getActive().getSheetByName('Assumptions');
     if (!ssAssum) { throw new Error(`can't get sheet for Assumptions`) };
-    var pidRange = ssBR.getRange('pid');
-    var pnameRange = ssBR.getRange('propName');
+    var pidRange = sheetBR.getRange('pid');
+    var pnameRange = sheetBR.getRange('propName');
     var rsfRange = ssAssum.getRange('RSF');
     var commDateRange = ssAssum.getRange('InitialDate');
     var leaseTermRange = ssAssum.getRange('LeaseTermMons');
@@ -162,11 +149,12 @@ function populateSheet() {
  * @return {String} retS - return value
  */
 
-function exportBR(dbInst) {
+function exportBR() {
   var fS = "exportBR";
   try {
-    var ssBR = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Base Rent Schedule");
-    var cellPID = ssBR.getRange("pid").getValue(); // get proposal id from sheet
+    const dbInst = new databaseC("applesmysql");
+    var sheetBR = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Base Rent Schedule");
+    var cellPID = sheetBR.getRange("pid").getValue(); // get proposal id from sheet
     var alreadyBR = matchingBRProposalID(dbInst, cellPID); // already br for this proposal?
     if (alreadyBR) {
       var updateYN = duplicateBRAlert();
@@ -175,10 +163,10 @@ function exportBR(dbInst) {
       }
       else { return }
     }
-    var lrS = ssBR.getLastRow().toString(); // last row string
+    var lrS = sheetBR.getLastRow().toString(); // last row string
     var brRangeS = "A5:E" + lrS;  // set range from A to E column; fix if columns change
     // Get range with base rent
-    var brRange = ssBR.getRange(brRangeS).getValues();
+    var brRange = sheetBR.getRange(brRangeS).getValues();
     // Put that range into a set of lists with dates formatted properly for input to SQL
     var adjBR = brRange.map(br => {
       var formattedStartDate = Utilities.formatDate(new Date(br[0]), "GMT-5", 'yyyy-MM-dd');
@@ -198,33 +186,19 @@ function exportBR(dbInst) {
     // Iterate over variable writing rows to the dbInst
     adjBR.forEach(record => {
       var ret = writeToTable(dbInst, "base_rent", record);
-      if (ret == -1) {
-        throw new Error("Problem writing to table in exportBR.");
-        return -1
+      if (!ret) {
+        throw new Error("problem writing to table");
       }
     })
   } catch (err) {
     var probS = `In ${fS}: ${err}`;
     Logger.log(probS)
-    throw new Error(probS);
-    return probS
+    return false
   }
-  return "Success"
+  return true
 }
-/**
- * Purpose: dispatch to export the 
- *
- * @param  {String} param_name - param
- * @param  {itemReponse[]} param_name - an array of responses 
- * @return {String} retS - return value
- */
 
-function exportBRDBDispatch() {
-  var dbInst = new databaseC("applesmysql");
-  var ret = exportBR(dbInst);
-  dbInst.closeconn();
 
-}
 
 /*************************UI Utilities************************ */
 
@@ -378,14 +352,6 @@ function runTests() {
     test.assert(testgetRSFfromPID(testPID) === "965", `testgetRSFfromPID with ${testPID}`);
     test.assert(testHandleJSON(), `testHandleJSON`);
     test.assert(populateSheet(), `populateSheet`);
-
-    // test.assert(testProposalNamesAndIDs(userS), `gcloudSQL.getProposalNamesAndIDs with user ${userS}`);
-    // test.assert(testgetCurrPropID(),`testgetCurrPropID shows a current proposal ID`);
-    // test.assert(evalPOResponses(form), `evalPOResponses`);
-    // test.assert(questionToClauseKey(dbInst, validQS), `questionToClauseKey with question '${validQS}'' in ck_question`);
-    // test.assert(testGetProposalData(dbInst, userS), `testGetProposalData with user '${userS}' in proposal data`);
-    // test.assert(emptyCk_Question(), 'emptyCk_Question');
-    // test.assert(writeAllQuestionsKeys(), 'writeAllQuestionsKeys');
   }
   dbInst.closeconn();
 }
@@ -411,12 +377,10 @@ function handleJSON() {
       var content = file.getBlob().getDataAsString();
       var json = JSON.parse(content);
     }
-
     if (json.nominalFreeRent) { nominalFreeRentG = json.nominalFreeRent }
     if (json.nominalRent) { nominalRentG = json.nominalRent }
     if (json.nominalTerm) { nominalTermG = json.nominalTerm }
     if (json.monthsDefault) { monthsDefaultG = json.monthsDefault }
-
   } catch (err) {
     probS = `In ${fS}: ${err}`
     console.log(probS);

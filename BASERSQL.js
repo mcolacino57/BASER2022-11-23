@@ -302,7 +302,7 @@ function writeToTable(dbInst, tableNameS, recordA) {
       .alert(`In writeToTable: ${err}`);
     return false
   }
-  return "Success"
+  return true
 }
 
 /**
