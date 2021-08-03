@@ -1,4 +1,5 @@
 // 210727 9:49
+// 210802 8:35
 /**
  * Purpose: read row(s) up to maxRows from database using dbInst for connection
  * 
@@ -12,17 +13,17 @@
 // Modified 210714 to include json y/n
 const logReadFromTable = false;
 const maxRows = 1000;
-function readFromTable(dbInst, tableNameS, colS, searchS, jsonyn=true) {
+function readFromTable(dbInst, tableNameS, colS, searchS, jsonyn = true) {
   var fS = "readFromTable";
   var logLoc = logReadFromTable;
   /*********connect to database ************************************ */
   try {
     var locConn = dbInst.getconn(); // get connection from the instance
-    logLoc ? console.log(locConn.toString()) : true;
+    logLoc ? Logger.log(locConn.toString()) : true;
     var stmt = locConn.createStatement();
     stmt.setMaxRows(maxRows);
   } catch (err) {
-    console.log(`In ${fS} issue getting connection or creating statement: ${err}`);
+    Logger.log(`In ${fS} issue getting connection or creating statement: ${err}`);
     return -1
   }
   /******************extract rows that meet select criteria ********* */
@@ -31,7 +32,7 @@ function readFromTable(dbInst, tableNameS, colS, searchS, jsonyn=true) {
     var results = stmt.executeQuery(qryS);
     var numCols = results.getMetaData().getColumnCount();
   } catch (err) {
-    console.log(`In ${fS} problem with executing ${colS} = ${searchS} query : ${err}`);
+    Logger.log(`In ${fS} problem with executing ${colS} = ${searchS} query : ${err}`);
     return -1
   }
   var dataA = [];
@@ -43,7 +44,7 @@ function readFromTable(dbInst, tableNameS, colS, searchS, jsonyn=true) {
     dataA.push(recA); // push inner array into outside array
   }
   // This finishes with an nxm matrix with #rows = length of dataA and #cols = numCols
-  logLoc ? console.log(dataA) : true;
+  logLoc ? Logger.log(dataA) : true;
 
   /**************************now get the header names ************************** */
   var qryS = `SHOW COLUMNS FROM ${tableNameS};`
@@ -57,12 +58,12 @@ function readFromTable(dbInst, tableNameS, colS, searchS, jsonyn=true) {
     //}
   } catch (err) {
     var problemS = `In ${fS} problem with executing query : ${err}`
-    console.log(problemS);
+    Logger.log(problemS);
     return problemS
   }
 
   var rowA = splitRangesToObjects(colA, dataA); // utility function in objUtil.gs
-  logLoc ? console.log(rowA) : true;
+  logLoc ? Logger.log(rowA) : true;
 
   results.close();
   stmt.close();
@@ -74,7 +75,7 @@ function readFromTable(dbInst, tableNameS, colS, searchS, jsonyn=true) {
     retObj["fields"] = rowA[j];
     retA.push(retObj);
   }
-  // console.log(retA);
+  // Logger.log(retA);
   if (jsonyn) {
     return (retA)
   } else {
@@ -103,23 +104,23 @@ function readInListFromTable(dbInst, tableNameS, colS, inListS) {
   /*********connect to database ************************************ */
   try {
     var locConn = dbInst.getconn(); // get connection from the instance
-    logLoc ? console.log(locConn.toString()) : true;
+    logLoc ? Logger.log(locConn.toString()) : true;
     var stmt = locConn.createStatement();
     stmt.setMaxRows(maxRows);
   } catch (err) {
     problemS = `In ${fS} issue getting connection or creating statement: ${err}`;
-    console.log(problemS);
+    Logger.log(problemS);
     return problemS
   }
   /******************extract rows that meet select criteria ********* */
   var qryS = `SELECT * FROM ${tableNameS} where ${colS} IN ${inListS};`;
-  logLoc ? console.log(qryS) : true;
+  logLoc ? Logger.log(qryS) : true;
   try {
     var results = stmt.executeQuery(qryS);
     var numCols = results.getMetaData().getColumnCount();
   } catch (err) {
     problemS = `In ${fS} problem with executing ${colS} = ${inListS} query : ${err}`;
-    console.log(problemS);
+    Logger.log(problemS);
     return problemS
   }
   var dataA = [];
@@ -131,7 +132,7 @@ function readInListFromTable(dbInst, tableNameS, colS, inListS) {
     dataA.push(recA); // push inner array into outside array
   }
   // This finishes with an nxm matrix with #rows = length of dataA and #cols = numCols
-  logLoc ? console.log(dataA) : true;
+  logLoc ? Logger.log(dataA) : true;
 
   /**************************now get the header names ************************** */
   var qryS = `SHOW COLUMNS FROM ${tableNameS};`
@@ -144,12 +145,12 @@ function readInListFromTable(dbInst, tableNameS, colS, inListS) {
     }
   } catch (err) {
     var problemS = `In ${fS} problem with executing query : ${err}`
-    console.log(problemS);
+    Logger.log(problemS);
     return problemS
   }
 
   var rowA = splitRangesToObjects(colA, dataA); // utility function in objUtil.gs
-  logLoc ? console.log(rowA) : true;
+  logLoc ? Logger.log(rowA) : true;
 
   results.close();
   stmt.close();
@@ -174,12 +175,12 @@ function readAllFromTable(dbInst, tableNameS) {
   /*********connect to database ************************************ */
   try {
     var locConn = dbInst.getconn(); // get connection from the instance
-    logReadAllFromTable ? console.log(locConn.toString()) : true;
+    logReadAllFromTable ? Logger.log(locConn.toString()) : true;
 
     var stmt = locConn.createStatement();
     stmt.setMaxRows(maxRows);
   } catch (err) {
-    console.log(`In ${fS} issue getting connection or creating statement: ${err}`);
+    Logger.log(`In ${fS} issue getting connection or creating statement: ${err}`);
     return -1
   }
   /******************extract rows that meet select criteria ********* */
@@ -188,8 +189,8 @@ function readAllFromTable(dbInst, tableNameS) {
     var results = stmt.executeQuery(qryS);
     var numCols = results.getMetaData().getColumnCount();
   } catch (err) {
-    console.log(`In ${fS} problem with executing ${colS} = ${searchS} query : ${err}`);
-    return -1
+    Logger.log(`In ${fS} problem with executing ${colS} = ${searchS} query : ${err}`);
+    return false
   }
   var dataA = [];
   while (results.next()) {  // the resultSet cursor moves forward with next; ends with false when at end
@@ -199,7 +200,7 @@ function readAllFromTable(dbInst, tableNameS) {
     }
     dataA.push(recA); // push inner array into outside array
   }
-  logReadAllFromTable ? console.log(dataA) : true;
+  logReadAllFromTable ? Logger.log(dataA) : true;
 
   /**************************now get the header names ************************** */
   var qryS = `SHOW COLUMNS FROM ${tableNameS};`
@@ -212,11 +213,11 @@ function readAllFromTable(dbInst, tableNameS) {
     }
   } catch (err) {
     var problemS = `In ${fS} problem with executing query : ${err}`
-    console.log(problemS);
+    Logger.log(problemS);
     return problemS
   }
   var rowA = splitRangesToObjects(colA, dataA); // utility function in objUtil.gs
-  logReadAllFromTable ? console.log(rowA) : true;
+  logReadAllFromTable ? Logger.log(rowA) : true;
   results.close();
   stmt.close();
   stmt2.close();
@@ -246,7 +247,7 @@ function getProposalNames(userS = "mcolacino@squarefoot.com") {
   var proposalsA = ret.map(function (record) {
     return record.proposalname
   })
-  console.log(proposalsA)
+  Logger.log(proposalsA)
   return proposalsA
 }
 
@@ -294,9 +295,9 @@ function writeToTable(dbInst, tableNameS, recordA) {
     var stmt = locConn.prepareStatement(qryS);
     stmt.execute();
 
-    console.log(qryS);
+    Logger.log(qryS);
   } catch (err) {
-    console.log(`In writeToTable: ${err}`);
+    Logger.log(`In writeToTable: ${err}`);
     SpreadsheetApp.getUi() // Or DocumentApp or FormApp.
       .alert(`In writeToTable: ${err}`);
     return false
@@ -324,7 +325,7 @@ function getSpaceDisplay(userS = "mcolacino@squarefoot.com") {
       sidentity: record.fields.spaceidentity  // note that somewhere along the way underscore gets stripped
     }
   })
-  logGetSpaceDisplay ? console.log(spaceA) : true;
+  logGetSpaceDisplay ? Logger.log(spaceA) : true;
   return spaceA
 
 }
@@ -346,7 +347,7 @@ function getProposalData(userS = "mcolacino@squarefoot.com") {
   var propDataA = ret.map(function (record) {
     return [record.fields.proposalname, record.fields.proposalid, record.fields.proposallocation, record.fields.proposalsize]
   })
-  logGetProposalData ? console.log(propDataA) : true;
+  logGetProposalData ? Logger.log(propDataA) : true;
   return propDataA
 }
 
@@ -358,7 +359,7 @@ function getProposalData(userS = "mcolacino@squarefoot.com") {
   * @return {object} pObj - object: name, id, loc, size
   */
 
-function getNamedProposalData(dbInst,proposalNameS, userS = "mcolacino@squarefoot.com") {
+function getNamedProposalData(dbInst, proposalNameS, userS = "mcolacino@squarefoot.com") {
   var fS = "getNamedProposalData";
   try {
     // var dbInst = new databaseC("applesmysql");
@@ -366,14 +367,14 @@ function getNamedProposalData(dbInst,proposalNameS, userS = "mcolacino@squarefoo
     var colNameS = "CreatedBy";
     var searchS = userS;
     var jsonyn = false;
-    var ret = readFromTable(dbInst, tableNameS, colNameS, searchS,jsonyn);
+    var ret = readFromTable(dbInst, tableNameS, colNameS, searchS, jsonyn);
     var propDataA = ret.map(function (record) {
       return [record.proposalname, record.proposalid, record.proposalsize]
     }).filter(prop => prop[0] == proposalNameS)
-    //console.log(propDataA)
+    //Logger.log(propDataA)
   } catch (err) {
     var problemS = `In ${fS}: ${err}`;
-    logWritePropDetail ? console.log(problemS) : true;
+    logWritePropDetail ? Logger.log(problemS) : true;
     return problemS
   }
   if (propDataA.length == 1) {
@@ -421,13 +422,13 @@ function writePropDetail(dbInst, record) {
   recordS = recordS.replace(rx, ""); // get rid of comma
   try {
     var qryS = `INSERT INTO prop_detail (${colS}) VALUES(${recordS});`;
-    // console.log(qryS);
+    // Logger.log(qryS);
     var locConn = dbInst.getconn(); // get connection from the instance
     var stmt = locConn.prepareStatement(qryS);
     stmt.execute();
   } catch (err) {
     var problemS = `In ${fS}: ${err}`;
-    logWritePropDetail ? console.log(problemS) : true;
+    logWritePropDetail ? Logger.log(problemS) : true;
     return problemS
   }
   return "Success"
@@ -449,13 +450,13 @@ function writeProposal(dbInst, record) {
   recordS = "UUID()," + recordS;
   try {
     var qryS = `INSERT INTO proposals (${colS}) VALUES(${recordS});`;
-    logWriteProposal ? console.log(qryS) : true;
+    logWriteProposal ? Logger.log(qryS) : true;
     var locConn = dbInst.getconn(); // get connection from the instance
     var stmt = locConn.prepareStatement(qryS);
     stmt.execute();
   } catch (err) {
     var problemS = `In ${fS}: ${err}`;
-    logWriteProposal ? console.log(problemS) : true;
+    logWriteProposal ? Logger.log(problemS) : true;
     return problemS
   }
   return "Success"
@@ -485,11 +486,11 @@ function deleteFromTable(dbInst, tableNameS, selectS) {
     var locConn = dbInst.getconn(); // get connection from the instance
     var stmt = locConn.createStatement();
     var qryS = `DELETE FROM ${tableNameS} where ${colS} = '${selectS}';`
-    console.log(qryS);
+    Logger.log(qryS);
     locConn.createStatement().execute(qryS);
 
   } catch (err) {
-    console.log(`${fS}: ${err}`)
+    Logger.log(`${fS}: ${err}`)
   }
   return true
 }
@@ -508,8 +509,8 @@ function matchingBRProposalID(dbInst, propID) {
     var locConn = dbInst.getconn(); // get connection from the instance
     var stmt = locConn.createStatement();
   } catch (err) {
-    console.log(`In ${fS} problem with connecting: ${err}`);
-    return -1
+    Logger.log(`In ${fS} problem with connecting: ${err}`);
+    return false
   }
   try {
     var rs = stmt.executeQuery(`SELECT COUNT(*) FROM base_rent where ProposalID = '${propID}';`);
@@ -519,7 +520,7 @@ function matchingBRProposalID(dbInst, propID) {
     else { return true }
   } catch (err) {
     var errS = `In ${fS} problem with executing ProposalID = ${propID} query : ${err}`
-    console.log(errS);
+    Logger.log(errS);
     throw new Error(errS);  // pass up to calling function
   }
 
@@ -533,7 +534,7 @@ function matchingBRProposalID(dbInst, propID) {
   * @return {array} propNameIDA - 2D array: name, id
   */
 
-function getProposalNamesAndIDs(dbInst,userS = "mcolacino@squarefoot.com") {
+function getProposalNamesAndIDs(dbInst, userS = "mcolacino@squarefoot.com") {
   var dbInst = new databaseC("applesmysql");
   var tableNameS = "proposals";
   var colNameS = "CreatedBy";
@@ -541,9 +542,9 @@ function getProposalNamesAndIDs(dbInst,userS = "mcolacino@squarefoot.com") {
   var jsonyn = false;
   var retA = readFromTable(dbInst, tableNameS, colNameS, searchS, jsonyn);
   var propNameIDA = retA.map(function (record) {
-    return [record.proposalname, record.proposalid,record.current]
+    return [record.proposalname, record.proposalid, record.current]
   });
-  console.log(propNameIDA)
+  Logger.log(propNameIDA)
   return propNameIDA
 }
 
@@ -570,30 +571,30 @@ function getAddressSuiteFloorSF(userS = "mcolacino@squarefoot.com") {
       sidentity: record.fields.spaceidentity
     }
   })
-  logGetAddressSuitFloorSF ? console.log(spaceA) : true;
+  logGetAddressSuitFloorSF ? Logger.log(spaceA) : true;
   return spaceA
 }
 
-function getRSFfromPID(dbInst,pid){
+function getRSFfromPID(dbInst, pid) {
   var fS = "getRSFfromPID";
   try {
-    const tableNameS="prop_rsf";
+    const tableNameS = "prop_rsf";
     const colNameS = "ProposalID";
     const searchS = pid;
     const jsonyn = false;
     var retA = readFromTable(dbInst, tableNameS, colNameS, searchS, jsonyn);
-    if(retA.length===0){ 
+    if (retA.length === 0) {
       throw new Error(`proposal ${pid} not found`);
     }
     else {
       var rsf = retA[0].squarefeet;
     }
   }
-  catch(err){
-    console.log(`In ${fS}; error: ${err}`)
+  catch (err) {
+    Logger.log(`In ${fS}; error: ${err}`)
     return false
   }
-return rsf
+  return rsf
 
 }
 
@@ -755,8 +756,8 @@ function testReadFromClauses() {
   // var records = retA.map(function (record) {
   //   return record;
   // });
-  console.log(retA);
-  // console.log(records[0].clausekey);
+  Logger.log(retA);
+  // Logger.log(records[0].clausekey);
   dbInst.getconn().close;
 }
 
@@ -767,14 +768,14 @@ function testReadFromProposals() {
   var searchS = userEmail;
   var jsonyn = false;
   var retA = readFromTable(dbInst, tableNameS, colNameS, searchS, jsonyn); // all rows in section Electric
-  console.log(retA);
+  Logger.log(retA);
   dbInst.getconn().close;
 }
 
-function testgetRSFfromPID(pid){
+function testgetRSFfromPID(pid) {
   const dbInst = new databaseC("applesmysql");
-  var rsf = getRSFfromPID(dbInst,pid);
-  console.log(rsf);
+  var rsf = getRSFfromPID(dbInst, pid);
+  Logger.log(rsf);
   return rsf
 }
 
@@ -786,10 +787,10 @@ function testgetRSFfromPID(pid){
  * @return {boolean[]} [pid, pN] or [false,false]
  */
 
- function getCurrentProposal(dbInst, userS) {
+function getCurrentProposal(dbInst, userS) {
   const fS = "getCurrentProposal";
-   var pid = "";
-   var pN = "";
+  var pid = "";
+  var pN = "";
   try {
     const locConn = dbInst.getconn(); // get connection from the instance
 
@@ -803,13 +804,56 @@ function testgetRSFfromPID(pid){
       cntr++;
       // column can either be by number or by string 
     }
-    if (cntr === 0 || pid==="") { throw new Error(`no current proposal`) }
+    if (cntr === 0 || pid === "") { throw new Error(`no current proposal`) }
     if (cntr > 1) { throw new Error(`more than one current proposal`) }
-    return [pid,pN]
+    return [pid, pN]
 
   } catch (err) {
     const probS = `In ${fS}: error ${err}`;
-    console.log(probS);
-    return [false,false] 
+    Logger.log(probS);
+    return [false, false]
   }
 }
+
+/**
+ * Purpose: From the prop_detail table, extract 'commDate' and 'leaseTerm' and
+ *
+ * @param  {Object} dbInst 
+ * @param  {String} propID - current proposal ID
+ * @return {String[]} retA - return array of commDate and leaseTerm, or false
+ */
+function getCommenceAndTermForCurrent(dbInst, propID) {
+  const fS = "getCommenceAndTermForCurrent";
+  var commDateS='', leaseTermS='';
+  try {
+    const locConn = dbInst.getconn(); // get connection from the instance
+    const qry = `SELECT ProposalAnswer,ProposalClauseKey FROM prop_detail \
+WHERE (ProposalClauseKey='commDate' OR  ProposalClauseKey='leaseTerm') and ProposalID = '${propID}';`;
+    const stmt = locConn.prepareStatement(qry);
+    const results = stmt.executeQuery(qry);
+    var cntr = 0;
+    while (results.next()) { // the resultSet cursor moves forward with next; ends with false when at end
+      var ck = results.getString("ProposalClauseKey");
+      var pAns = results.getString("ProposalAnswer");
+      if(ck==='commDate'){commDateS=pAns}
+      if(ck==='leaseTerm'){leaseTermS=pAns}
+      cntr++;
+    }
+    if (cntr === 0) { throw new Error(`no term or commencement in prop_detail`) }
+    if (cntr > 2) { throw new Error(`more rows in prop_detail than expected`) }
+    return [commDateS, leaseTermS]
+
+  } catch (err) {
+    const probS = `In ${fS}: error ${err}`;
+    Logger.log(probS);
+    return [false, false]
+  }
+}
+
+function testgetCommenceAndTermForCurrent(){
+  const dbInst = new databaseC("applesmysql");
+  var [propID,propName] = getCurrentProposal(dbInst,userEmail);
+  var [cd,lt]=getCommenceAndTermForCurrent(dbInst,propID);
+  console.log(`${cd} and ${lt}`);
+}
+
