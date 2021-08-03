@@ -1,26 +1,26 @@
-var ss = SpreadsheetApp.getActiveSpreadsheet();
+// 210802 4:13
+// 210802 11:10
+
 var nominalFreeRentG = "6";
 var nominalRentG = "60";
 var nominalTermG = "36";
 var monthsDefaultG = "12";
-    
+
 
 const userEmail = Session.getActiveUser().getEmail();
 const ssLogID = '1l3EYsH7UJFUfuFORFF7GNxPM2jwLZlSh_0xSgSDTOPo';
-Logger = BetterLog.useSpreadsheet(ssLogID); 
+Logger = BetterLog.useSpreadsheet(ssLogID);
 
 function onOpen(e) {
-    // Logger.log(`Getting into onOpen with ${err}`);
-    // SpreadsheetApp.getUi() // Or DocumentApp or FormApp.
-    //   .alert("Getting into onOpen");
   var spreadsheet = SpreadsheetApp.getActive();
   var menuItems = [
-    { name: 'Get Proposals', functionName: 'crProposalSheet' },
+    // { name: 'Get Proposals', functionName: 'crProposalSheet' },
     { name: 'Create Initial Row', functionName: 'crInitRowDispatch' },
     { name: 'Create Additional Row', functionName: 'crAddlRowDispatch' },
     { name: 'Export Base Rent', functionName: 'exportBRDBDispatch' }
   ];
   spreadsheet.addMenu('Base Rent', menuItems);
+  var ret = populateSheet();
 }
 
 /**
@@ -53,7 +53,7 @@ function crInitRow(ss) {
 }
 
 function crInitRowDispatch() {
-  //var ss = SpreadsheetApp.openById("10L4V9cHede6Q7iX0NQg2XZWjZU23oMUExc2KlcmpzoY");
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
   var retS = crInitRow(ss);
 }
 
@@ -94,7 +94,7 @@ function crAddlRow(ss) {
 }
 
 function crAddlRowDispatch() {
-  //var ss = SpreadsheetApp.openById("10L4V9cHede6Q7iX0NQg2XZWjZU23oMUExc2KlcmpzoY");
+  var ss = SpreadsheetApp.getActiveSpreadsheet();;
   var retS = crAddlRow(ss);
 }
 
@@ -123,62 +123,99 @@ function formatCurrency(range) {
  *
  * @return {String} retS - return value
  */
-function crProposalSheet() {
-  var fS = "crProposalSheet"
-  var errS = "Can't find or create Proposals sheet";
-  var dbInst = new databaseC("applesmysql");
-  try {
-    var ss = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Proposals");  // make proosals active or create
-    if (!ss) {
-      var ss = SpreadsheetApp.getActiveSpreadsheet().insertSheet().setName("Proposals");
-    }
-  }
-  catch (err) {
-    var probS = `${errS}: ${err}`;
-    Logger.log(probS);
-    SpreadsheetApp.getUi() // Or DocumentApp or FormApp.
-      .alert(probS);
-    return probS;
-  }
-  var propA = getProposalNamesAndIDs(dbInst,userEmail);
-  var retS = populateSheet(ss, propA);
-  dbInst.closeconn();
-  return retS;
-}
 
+/**  Radical changes on 210802
+ * 1. Eliminate concept of proposal sheet in favor of idea of a proposal cell set
+ * based on the current proposal
+ * 2. Therefor eliminate VLOOKUP based on what is happening in cell B2, and instead just
+ * poke the current Proposal Name and PID in b2 and b3 or into range 'pid'
+ * 4. Eliminate the dropdown function in the spreadsheet
+ * 5. Get the RSF from the current proposal and poke that into 'RSF'
+ * 6. Extra credit: acquire the initial date from the prop_gen table and poke that into the assumptions sheet
+*/
+// function crProposalSheet() {
+//   var fS = "crProposalSheet"
+//   var errS = "Can't find or create Proposals sheet";
+//   var dbInst = new databaseC("applesmysql");
+//   try {
+//     var ss = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Proposals");  // make proosals active or create
+//     if (!ss) {
+//       var ss = SpreadsheetApp.getActiveSpreadsheet().insertSheet().setName("Proposals");
+//     }
+//   }
+//   catch (err) {
+//     var probS = `${errS}: ${err}`;
+//     Logger.log(probS);
+//     SpreadsheetApp.getUi() // Or DocumentApp or FormApp.
+//       .alert(probS);
+//     return false;
+//   }
+//   var propA = getProposalNamesAndIDs(dbInst,userEmail);
+//   // Need to get the current proposal ID, and use that to get
+//   // the rsf
+//   // More generally should the base rent function just
+//   // look at the current proposal--this would greatly simplify
+//   // the functionality
+//   var currPropID = getCurrentProposal(dbInst,userEmail);
+//   var ret = populateSheet(ss,currPropID);  if this goes back in, add older version
+
+//   dbInst.closeconn();
+//   return ret;
+// }
+// Major changes on 210802
 /**
- * Purpose: populate sheet with data from propA
+ * Purpose: populate sheet with data from current proposal
  *
- * @param  {object} ss- spreadsheet sheet
- * @param  {array} propA - an array of properties to write 
+ * @param  {object} ss- spreadsheet sheet--now the main (0) sheet
  * @return {String} retS - return value
  */
-function populateSheet(ss, propA) {
-  var errS = "Can't populate sheet"
+function populateSheet() {
+  var fS = "populateSheet";
+  var errS = "Can't populate sheet";
   try {
+    const dbInst = new databaseC("applesmysql");
+    var [propID, propName] = getCurrentProposal(dbInst, userEmail);
+    var rsf = getRSFfromPID(dbInst, propID);
+    var [commDate, leaseTerm] = getCommenceAndTermForCurrent(dbInst, propID);
+    var ssBR = SpreadsheetApp.getActive().getSheetByName('Base Rent Schedule');
+    // if(!ssBR) { throw new Error(`can't get sheet for Base Rent Schedule`)};s
+    var ssAssum = SpreadsheetApp.getActive().getSheetByName('Assumptions');
+    // if(!ssAssum) { throw new Error(`can't get sheet for Assumptions`)};
+    var pidRange = ssBR.getRange('pid');
+    var pnameRange = ssBR.getRange('propName');
+    var rsfRange = ssAssum.getRange('RSF');
+    var commDateRange = ssAssum.getRange('InitialDate');
+    var leaseTermRange = ssAssum.getRange('LeaseTermMons');
+
+    commDateRange.setValues([[commDate]]);
+    leaseTermRange.setValues([[leaseTerm]]);
+    pidRange.setValues([[propID]]);
+    rsfRange.setValues([[rsf]]);
+    pnameRange.setValues([[propName]]);
+
     // first clear out the sheet
-    var maxRowsS = ss.getLastRow().toString();
-    const rangeExistingS = [`A2:B${maxRowsS}`];  // Leave heading
-    const initialR = ss.getRange(rangeExistingS);
-    initialR.clearContent();
-
-
-    const rangeS = ["A2:", "B", propA.length + 1].join("");
-    const ssRange = ss.getRange(rangeS);
-    ssRange.setValues(propA);
-    const ssBR = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
-    // Logger.log(ssBR.getName());
-    const cellPID = ssBR.getRange("pid");
-    const pid = cellPID.getValue();
-    cellPID.setFormula("=VLOOKUP(B2,Proposals!A2:B6,2,FALSE)");
-   const dbInst = new databaseC("applesmysql");
-   var propRSF = getRSFfromPID(dbInst,pid);
+    //   var maxRowsS = ss.getLastRow().toString();
+    //   const rangeExistingS = [`A2:B${maxRowsS}`];  // Leave heading
+    //   const initialR = ss.getRange(rangeExistingS);
+    //   initialR.clearContent();
+    //   const rangeS = ["A2:", "B", propA.length + 1].join("");
+    //   const ssRange = ss.getRange(rangeS);
+    //   ssRange.setValues(propA);
+    //   const ssBR = SpreadsheetApp.getActiveSpreadsheet().getSheets()[0];
+    //   const ssAssum = SpreadsheetApp.getActiveSpreadsheet().getSheets()[2];
+    //   // Logger.log(ssBR.getName());
+    //   const rsfRange = ssAssum.getRange("RSF");
+    //   const cellPID = ssBR.getRange("pid");
+    //   const pid = cellPID.getValue();
+    //   cellPID.setFormula("=VLOOKUP(B2,Proposals!A2:B6,2,FALSE)");
+    //  const dbInst = new databaseC("applesmysql");
+    //  var propRSF = getRSFfromPID(dbInst,pid);
   }
   catch (err) {
-    Logger.log(`${errS}: ${err}`);
+    Logger.log(`In ${fS} ${errS} and ${err}`);
     SpreadsheetApp.getUi() // Or DocumentApp or FormApp.
       .alert(`${errS}: ${err}`);
-    return -1;
+    return false;
   }
   return "Success"
 }
@@ -199,9 +236,9 @@ function exportBR(dbInst) {
     var alreadyBR = matchingBRProposalID(dbInst, cellPID); // already br for this proposal?
     if (alreadyBR) {
       var updateYN = duplicateBRAlert();
-      if (updateYN) { 
-        var ret = deleteFromTable(dbInst, "base_rent", cellPID); 
-        }
+      if (updateYN) {
+        var ret = deleteFromTable(dbInst, "base_rent", cellPID);
+      }
       else { return }
     }
     var lrS = ssBR.getLastRow().toString(); // last row string
@@ -393,7 +430,8 @@ function runTests() {
   test.runInGas(true);
   if (test.isEnabled) {
 
-  test.assert(testgetRSFfromPID(testPID)==="965",`testgetRSFfromPID with ${testPID}`)  
+    test.assert(testgetRSFfromPID(testPID) === "965", `testgetRSFfromPID with ${testPID}`);
+
     // test.assert(testProposalNamesAndIDs(userS), `gcloudSQL.getProposalNamesAndIDs with user ${userS}`);
     // test.assert(testgetCurrPropID(),`testgetCurrPropID shows a current proposal ID`);
     // test.assert(evalPOResponses(form), `evalPOResponses`);
@@ -414,8 +452,8 @@ function runTests() {
  * @param  {object} docInst - instance of document class
  * @return {String} retS - return value
  */
- function handleJSON(dbInst, docInst) {
-  var fS = "handleJSON", probS, retS;
+function handleJSON(dbInst, docInst) {
+  var fS = "handleJSON", probS;
   var userPrefixS = userEmail.split('@')[0];
   var fileName = userPrefixS + ".json";
   try {
@@ -428,10 +466,10 @@ function runTests() {
     }
 
     if (json.nominalFreeRent) { nominalFreeRentG = json.nominalFreeRent }
-    if (json.nominalRent) {nominalRentG = json.nominalRent }
+    if (json.nominalRent) { nominalRentG = json.nominalRent }
     if (json.nominalTerm) { nominalTermG = json.nominalTerm }
     if (json.monthsDefault) { monthsDefaultG = json.monthsDefault }
-    
+
   } catch (err) {
     probS = `In ${fS}: ${err}`
     console.log(probS);
