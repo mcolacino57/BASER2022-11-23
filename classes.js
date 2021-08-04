@@ -1,3 +1,6 @@
+/*exported proposalC,formClauseC,brokerC,docC,questionC,responseC,databaseC */
+/*global getProposalNamesAndIDs,userEmail,DriveApp,DocumentApp,getItemResps,getAnswerWithMap,Jdbc,Utilities*/
+
 /*********************proposal class ******************************** */
 class proposalC {
   constructor(dbInst,propName){
@@ -24,13 +27,13 @@ class clauseC {
     this.geo = geo; // String, for example "New York" or "National";
     this.section = this.name; // override below
   }
-  setGeo(geo) { this.geo = geo };
+  setGeo(geo) { this.geo = geo }
   setFormSelector(formSelector) { this.formSelector = formSelector }
   setAtSelector(atSelector) { this.atSelector = atSelector }
   setSection(section) { this.section = section }
 
-  getName() { return this.name };
-  getGeo() { return this.geo };
+  getName() { return this.name }
+  getGeo() { return this.geo }
   getFormSelector() { return this.formSelector }
   getAtSelector() { return this.atSelector }
   getSection() { return this.section }

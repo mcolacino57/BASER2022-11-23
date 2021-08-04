@@ -1,3 +1,6 @@
+
+/*exported onOpen,getItemResps,getAnswerWithMap */
+/*global SpreadsheetApp */
 // 210803 9:31
 // 210803 9:49
 // 210803 12:52
@@ -14,7 +17,6 @@ Logger = BetterLog.useSpreadsheet(ssLogID);
 
 // eslint-disable-next-line no-unused-vars
 function onOpen(e) {
-  // eslint-disable-next-line no-undef
   var spreadsheet = SpreadsheetApp.getActive();
   var menuItems = [
     { name: 'Create Initial Row', functionName: 'crInitRow' },
@@ -123,7 +125,7 @@ function populateSheet() {
     // eslint-disable-next-line no-undef
     const dbInst = new databaseC("applesmysql");
     // eslint-disable-next-line no-undef
-    var [propID, propName] = getCurrentProposal(dbInst, userEmail);
+    var [propID, propName] = getCurrentProposal(dbInst);
     // eslint-disable-next-line no-undef
     var rsf = getRSFfromPID(dbInst, propID);
     // eslint-disable-next-line no-undef
@@ -352,4 +354,45 @@ function handleJSON() {
     return false
   }
   return true
+}
+
+/**
+ * Purpose: get a list of items from the form; assumes just one response. Change if there are multiple responsess
+ * see getProto1Responses
+ * @param  {object} form 
+ * @return {object[]} retA - return all items from the form response
+ *  
+ **/
+
+function getItemResps(form) {
+  try {
+    var formResponses = form.getResponses(); // assumed to be only one
+    if (formResponses.length == 0) { throw new Error("getItemResps: formResponses has no responses") }
+    if (formResponses.length > 1) { throw new Error("getItemResps: formResponses has too many responses") }
+    var formResponse = formResponses[0]; //  
+    var retA = formResponse.getItemResponses(); // array of items; which are questions and answers
+  }
+  catch (err) {
+    console.log(`getItemResps: ${err}`);
+    return { result: "Not Found" }
+  }
+  return retA
+}
+
+
+/**
+ * Purpose: Gets an answer from a list of responses by using the question as an index
+ *
+ * @param  {String} question - question from form 
+ * @param  {itemReponse[]} itemResponses - an array of responses from a form
+ * @return {String} answer - an answer corresponding to question or "Not Found"
+ */
+ function getAnswerWithMap(question, itemResponses) {
+  var responses = itemResponses.map(function (response) {
+    return response.getItem().getTitle();
+  });
+  var pos = responses.indexOf(question);
+  if (pos == -1) { return "Not Found" }
+  var answer = itemResponses[pos].getResponse();
+  return answer
 }
