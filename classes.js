@@ -1,6 +1,5 @@
+/*global getPropSize,getProposalNamesAndIDs,userEmail,DriveApp,DocumentApp,getItemResps,getAnswerWithMap,Jdbc,Utilities*/
 /*exported proposalC,formClauseC,brokerC,docC,questionC,responseC,databaseC */
-/*global getProposalNamesAndIDs,userEmail,DriveApp,DocumentApp,getItemResps,getAnswerWithMap,Jdbc,Utilities*/
-
 /*********************proposal class ******************************** */
 class proposalC {
   constructor(dbInst,propName){
@@ -8,15 +7,23 @@ class proposalC {
     this.prop = allPropsA.filter((p)=> {
       return p[0]==propName  // returns array with propName and propID
     })[0];
-    this.propName=this.prop[0];
-    this.propID=this.prop[1];
+    this.name =this.prop[0];
+    this.id = this.prop[1];
+    this.size = getPropSize(dbInst, this.id,userEmail);
+    // this.loc = getPropLoc(this.propID);
   }
-  getpropName(){
-    return this.propName
+  getName(){
+    return this.name
   }
-  getpropID(){
-    return this.propID
+  getID(){
+    return this.id
   }
+  getSize() {
+    return this.size
+  }
+  //getLoc() {
+    //return this.loc
+ // }
 
   }
   /*****************clause class ************************************ */
