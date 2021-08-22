@@ -1,9 +1,7 @@
 
 /*exported onOpen,getItemResps,getAnswerWithMap */
 /*global SpreadsheetApp */
-// 210803 9:31
-// 210803 9:49
-// 210803 12:52
+
 var nominalFreeRentG = "6";
 var nominalRentG = "60";
 var nominalTermG = "36";
@@ -19,13 +17,13 @@ Logger = BetterLog.useSpreadsheet(ssLogID);
 function onOpen(e) {
   var spreadsheet = SpreadsheetApp.getActive();
   var menuItems = [
-    { name: 'Create Initial Row', functionName: 'crInitRow' },
-    { name: 'Create Additional Row', functionName: 'crAddlRow' },
-    { name: 'Export Base Rent', functionName: 'exportBR' }
+    { name: 'Create Initial Row', functionName: 'crInitRow' },  // (6.3)
+    { name: 'Create Additional Row', functionName: 'crAddlRow' }, // (6.4)
+    { name: 'Export Base Rent', functionName: 'exportBR' }  // (6.5)
   ];
   spreadsheet.addMenu('Base Rent', menuItems);
-  var ret = handleJSON(); // set globals from username.json
-  ret = populateSheet();
+  var ret = handleJSON(); // set globals from username.json (6.1)
+  ret = populateSheet();  // (6.2)
   return ret
 
 }
@@ -66,7 +64,7 @@ function crInitRow() {
  * Create row with start date=prior end date, formula for end date, RSF, and 
  * formula for annual rent.
  * 
- * NOTE: Column numbers are hardwired here an changes to the sheet might need changes
+ * NOTE: Column numbers are hardwired here and changes to the sheet might need changes
  * 
  * @return {Boolean} true/false
  */
