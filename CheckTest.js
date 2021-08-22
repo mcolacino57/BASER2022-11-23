@@ -1,18 +1,12 @@
-/*exported testCrFormResponseArray, 
+/*exported 
 testExamineForm,
 testPrintTitlesAndIDs, 
 testGetClauseKeysThisForm,runTests
  */
 
-/*global fieldS_G , FormApp , databaseC, getClauseKeysThisForm ,formID_G ,
-setFieldString, emptyProp_Detail,evalTIResponses,emptyCk_Question,writeAllQuestionsKeys,testgetCurrPropID,
+/*global fieldS_G , FormApp , databaseC, getClauseKeysThisForm ,formID_G ,writeAllQuestionsKeys,testgetCurrPropID,
 UnitTestingApp*/
 
-function testCrFormResponseArray() {
-  var f = FormApp.getActiveForm();
-  var resp = crFormResponseArray(f);
-  console.log(resp)
-}
 
 // logs all of the titles of items in a form 
 function examineForm(form) {
@@ -67,41 +61,17 @@ function testGetClauseKeysThisForm() {
 
 function runTests() {
   var dbInst = new databaseC("applesmysql");
-  var form = FormApp.openById(formID_G);
-  // var validQS = "Funky Tut?";
-  // var userS = "fredo@corleone.com";
-  // var userS = userEmail;
   var propID = "";
   const test = new UnitTestingApp();
   test.enable(); // tests will run below this line
   test.runInGas(true);
   console.log("Deleting all records in prop_detail to run tests")
   if (test.isEnabled) {
-    test.assert(setFieldString(),`setFieldString: ${fieldS_G}`);
-    test.assert(emptyProp_Detail(), `emptyProp_Detail`);
-    test.assert(evalTIResponses(form), `evalTIResponses`);
-    test.assert(emptyCk_Question(), 'emptyCk_Question');
+    // test.assert(setFieldString(),`setFieldString: ${fieldS_G}`);
+    // test.assert(emptyCk_Question(), 'emptyCk_Question');
     test.assert(writeAllQuestionsKeys(), 'writeAllQuestionsKeys');
     test.assert(propID=testgetCurrPropID(), `testgetCurrPropID: ${propID}`);
 
   }
   dbInst.closeconn();
-}
-
-function crFormResponseArray(form) {
-  // Use the global form ID and log the responses to each question.
-  var respB = [];
-  var formResponses = form.getResponses();
-  // console.log("Number of responses is %s ", formResponses.length)
-  for (var i = 0; i < formResponses.length; i++) {
-    var respA = [];
-    var formResponse = formResponses[i];
-    var itemResponses = formResponse.getItemResponses();
-    for (var j = 0; j < itemResponses.length; j++) {
-      var itemResponse = itemResponses[j];
-      respA.push({ "question": itemResponse.getItem().getTitle(), "answer": itemResponse.getResponse() });
-    }
-    respB.push([respA]);
-  }
-  return respB
 }
