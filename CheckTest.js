@@ -67,8 +67,6 @@ function runTests() {
   test.runInGas(true);
   console.log("Deleting all records in prop_detail to run tests")
   if (test.isEnabled) {
-    // test.assert(setFieldString(),`setFieldString: ${fieldS_G}`);
-    // test.assert(emptyCk_Question(), 'emptyCk_Question');
     test.assert(writeAllQuestionsKeys(), 'writeAllQuestionsKeys');
     test.assert(propID=testgetCurrPropID(), `testgetCurrPropID: ${propID}`);
 

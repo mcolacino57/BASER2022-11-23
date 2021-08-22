@@ -356,28 +356,6 @@ function handleJSON() {
   return true
 }
 
-/**
- * Purpose: get a list of items from the form; assumes just one response. Change if there are multiple responsess
- * see getProto1Responses
- * @param  {object} form 
- * @return {object[]} retA - return all items from the form response
- *  
- **/
-
-function getItemResps(form) {
-  try {
-    var formResponses = form.getResponses(); // assumed to be only one
-    if (formResponses.length == 0) { throw new Error("getItemResps: formResponses has no responses") }
-    if (formResponses.length > 1) { throw new Error("getItemResps: formResponses has too many responses") }
-    var formResponse = formResponses[0]; //  
-    var retA = formResponse.getItemResponses(); // array of items; which are questions and answers
-  }
-  catch (err) {
-    console.log(`getItemResps: ${err}`);
-    return { result: "Not Found" }
-  }
-  return retA
-}
 
 
 /**
