@@ -8,7 +8,9 @@ var nominalTermG = "36";
 var monthsDefaultG = "12";
 
 // eslint-disable-next-line no-undef
-const userEmail = Session.getActiveUser().getEmail();
+// const userEmail = Session.getActiveUser().getEmail();
+const userEmail = "mcolacino@squarefoot.com";
+
 const ssLogID = '1l3EYsH7UJFUfuFORFF7GNxPM2jwLZlSh_0xSgSDTOPo';
 // eslint-disable-next-line no-undef
 Logger = BetterLog.useSpreadsheet(ssLogID);
