@@ -1,7 +1,9 @@
 
-/*exported onOpen,getItemResps,getAnswerWithMap */
-/*global SpreadsheetApp */
+/*exported onOpen,getItemResps,getAnswerWithMap , databaseNameG */
 
+/*global SpreadsheetApp , BetterLog , Logger*/
+
+// should come from the json
 var nominalFreeRentG = "6";
 var nominalRentG = "60";
 var nominalTermG = "36";
@@ -12,13 +14,18 @@ var monthsDefaultG = "12";
 const userEmail = "mcolacino@squarefoot.com";
 
 const ssLogID = '1l3EYsH7UJFUfuFORFF7GNxPM2jwLZlSh_0xSgSDTOPo';
-// eslint-disable-next-line no-undef
+// eslint-disable-next-line no-global-assign
 Logger = BetterLog.useSpreadsheet(ssLogID);
+const databaseNameG = "applesmysql";
+// last row with header; don't delete this or anything above
+const lastRow = 4; // hardwired; note that if the header on the sheet changes this must also
+const baseRentSheetNameS = "Base Rent Schedule";
 
 // eslint-disable-next-line no-unused-vars
 function onOpen(e) {
   var spreadsheet = SpreadsheetApp.getActive();
   var menuItems = [
+    { name: 'Clear Sheet' , functionName: 'clrSheet' },
     { name: 'Create Initial Row', functionName: 'crInitRow' },  // (6.3)
     { name: 'Create Additional Row', functionName: 'crAddlRow' }, // (6.4)
     { name: 'Export Base Rent', functionName: 'exportBR' }  // (6.5)
@@ -27,7 +34,31 @@ function onOpen(e) {
   var ret = handleJSON(); // set globals from username.json (6.1)
   ret = populateSheet();  // (6.2)
   return ret
+}
 
+/**
+ * Purpose
+ *
+ * @param  {String} param_name - param
+ * @param  {itemReponse[]} param_name - an array of responses 
+ * @return {Boolean} t/f - return value
+ */
+// eslint-disable-next-line no-unused-vars
+function clrSheet() {
+  var fS = "clrSheet";
+  try {
+    const sheetBR = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(baseRentSheetNameS);
+    const lr = sheetBR.getLastRow();
+    sheetBR.deleteRows(lastRow + 1, lr - lastRow);
+    // also need to reset named ranges
+    
+  } catch (err) {
+    const probS = `In ${fS}: ${err}`;
+    Logger.log(probS);
+    throw new Error(probS);
+    
+  }
+  return true;
 }
 
 /**
@@ -37,20 +68,23 @@ function onOpen(e) {
  * 
  * @return {Boolean} true/false
  */
-const lastRow = 4; // hardwired
 // eslint-disable-next-line no-unused-vars
 function crInitRow() {
   var fS = "crInitRow";
   try {
     // eslint-disable-next-line no-undef
-    var sheetBR = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Base Rent Schedule");
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheetBR = ss.getSheetByName(baseRentSheetNameS);
     var lr = sheetBR.getLastRow();
     if (lr > lastRow) {
       throw new Error(`Last row is ${lr}; delete all rows past ${lastRow}`);
     }
+    // set dtlb named range for use in formulae
+    var dtlbRange = ss.getRange(`${baseRentSheetNameS}!A${lastRow+1}`);
+    ss.setNamedRange("DTLB", dtlbRange);
+    // add the row
     var brRow = crBaseRentRow("=InitialDate", nominalFreeRentG, 0);
     sheetBR.appendRow(brRow);
-
   } catch (err) {
     // eslint-disable-next-line no-undef
     Logger.log(`In ${fS}: ${err}`);
@@ -78,7 +112,7 @@ function crAddlRow() {
   var fS = "crAddlRow";
   try {
     // eslint-disable-next-line no-undef
-    var sheetBR = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Base Rent Schedule");
+    var sheetBR = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(baseRentSheetNameS);
     var startFromEndS = '=INDIRECT("R[-1]C[2]",FALSE)+1';  // hardwired difference
     var brRow = crBaseRentRow(startFromEndS, monthsDefaultG, nominalRentG);
     sheetBR.appendRow(brRow);
@@ -131,7 +165,7 @@ function populateSheet() {
     // eslint-disable-next-line no-undef
     var [commDate, leaseTerm] = getCommenceAndTermForCurrent(dbInst, propID);
     // eslint-disable-next-line no-undef
-    var sheetBR = SpreadsheetApp.getActive().getSheetByName('Base Rent Schedule');
+    var sheetBR = SpreadsheetApp.getActive().getSheetByName(baseRentSheetNameS);
     if (!sheetBR) { throw new Error(`can't get sheet for Base Rent Schedule`) }
     // eslint-disable-next-line no-undef
     var ssAssum = SpreadsheetApp.getActive().getSheetByName('Assumptions');
@@ -173,7 +207,7 @@ function exportBR() {
     // eslint-disable-next-line no-undef
     const dbInst = new databaseC("applesmysql");
     // eslint-disable-next-line no-undef
-    var sheetBR = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("Base Rent Schedule");
+    var sheetBR = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(baseRentSheetNameS);
     var cellPID = sheetBR.getRange("pid").getValue(); // get proposal id from sheet
     // eslint-disable-next-line no-undef
     var alreadyBR = matchingBRProposalID(dbInst, cellPID); // already br for this proposal?
