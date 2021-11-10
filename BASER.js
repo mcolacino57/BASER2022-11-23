@@ -19,7 +19,7 @@ Logger = BetterLog.useSpreadsheet(ssLogID);
 const databaseNameG = "applesmysql";
 // last row with header; don't delete this or anything above
 const lastRow = 4; // hardwired; note that if the header on the sheet changes this must also
-const baseRentSheetNameS = "Base Rent Schedule";
+const baseRentSheetNameSG = "Base Rent Schedule";
 
 // eslint-disable-next-line no-unused-vars
 function onOpen(e) {
@@ -47,7 +47,7 @@ function onOpen(e) {
 function clrSheet() {
   var fS = "clrSheet";
   try {
-    const sheetBR = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(baseRentSheetNameS);
+    const sheetBR = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(baseRentSheetNameSG);
     const lr = sheetBR.getLastRow();
     sheetBR.deleteRows(lastRow + 1, lr - lastRow);
     // also need to reset named ranges
@@ -74,14 +74,17 @@ function crInitRow() {
   try {
     // eslint-disable-next-line no-undef
     var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var sheetBR = ss.getSheetByName(baseRentSheetNameS);
+    var sheetBR = ss.getSheetByName(baseRentSheetNameSG);
     var lr = sheetBR.getLastRow();
     if (lr > lastRow) {
       throw new Error(`Last row is ${lr}; delete all rows past ${lastRow}`);
     }
     // set dtlb named range for use in formulae
-    var dtlbRange = ss.getRange(`${baseRentSheetNameS}!A${lastRow+1}`);
+    var dtlbRange = ss.getRange(`${baseRentSheetNameSG}!A${lastRow+1}`);
     ss.setNamedRange("DTLB", dtlbRange);
+    var dtlxRange = ss.getRange(`${baseRentSheetNameSG}!C${lastRow + 1}`);
+    ss.setNamedRange("DTLX", dtlxRange);
+
     // add the row
     var brRow = crBaseRentRow("=InitialDate", nominalFreeRentG, 0);
     sheetBR.appendRow(brRow);
@@ -112,13 +115,17 @@ function crAddlRow() {
   var fS = "crAddlRow";
   try {
     // eslint-disable-next-line no-undef
-    var sheetBR = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(baseRentSheetNameS);
-    var startFromEndS = '=INDIRECT("R[-1]C[2]",FALSE)+1';  // hardwired difference
-    var brRow = crBaseRentRow(startFromEndS, monthsDefaultG, nominalRentG);
+    const ss = SpreadsheetApp.getActiveSpreadsheet()
+    const sheetBR = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(baseRentSheetNameSG);
+    const startFromEndS = '=INDIRECT("R[-1]C[2]",FALSE)+1';  // hardwired difference
+    const brRow = crBaseRentRow(startFromEndS, monthsDefaultG, nominalRentG);
     sheetBR.appendRow(brRow);
-    var lr = sheetBR.getLastRow();
+    const lr = sheetBR.getLastRow();
     sheetBR.getRange(lr, rentPSFC).setNumberFormat("$#,##0.00;$(#,##0.00)");
     sheetBR.getRange(lr, rentAnnC).setNumberFormat("$#,##0;$(#,##0)");
+    // set dtlx
+    const dtlxRange = ss.getRange(`${baseRentSheetNameSG}!C${lr}`);
+    ss.setNamedRange("DTLX", dtlxRange);
   } catch (err) {
     // eslint-disable-next-line no-undef
     Logger.log(`In ${fS}: error: ${err}`);
@@ -131,12 +138,12 @@ function crAddlRow() {
 }
 
 /**
- * Purpose: create a base rent row for appending
+ * Purpose: create a base rent row for appending, creats formula fo endS and annRS
  *
  * @param  {string} startDateS - poke into start date
  * @param  {string} months - string but a number
  * @param {string} rentPSF - string but dollar value
- * @return {array}  - returns array of four strings
+ * @return {array}  - array of startDateS, months, endS, rentPSF, annRS
  */
 function crBaseRentRow(startDateS, months, rentPSF) {
   var endS = '=EDATE(INDIRECT("R[0]C[-2]",FALSE),INDIRECT("R[0]C[-1]",FALSE))-1';
@@ -165,7 +172,7 @@ function populateSheet() {
     // eslint-disable-next-line no-undef
     var [commDate, leaseTerm] = getCommenceAndTermForCurrent(dbInst, propID);
     // eslint-disable-next-line no-undef
-    var sheetBR = SpreadsheetApp.getActive().getSheetByName(baseRentSheetNameS);
+    var sheetBR = SpreadsheetApp.getActive().getSheetByName(baseRentSheetNameSG);
     if (!sheetBR) { throw new Error(`can't get sheet for Base Rent Schedule`) }
     // eslint-disable-next-line no-undef
     var ssAssum = SpreadsheetApp.getActive().getSheetByName('Assumptions');
@@ -207,7 +214,7 @@ function exportBR() {
     // eslint-disable-next-line no-undef
     const dbInst = new databaseC("applesmysql");
     // eslint-disable-next-line no-undef
-    var sheetBR = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(baseRentSheetNameS);
+    var sheetBR = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(baseRentSheetNameSG);
     var cellPID = sheetBR.getRange("pid").getValue(); // get proposal id from sheet
     // eslint-disable-next-line no-undef
     var alreadyBR = matchingBRProposalID(dbInst, cellPID); // already br for this proposal?
