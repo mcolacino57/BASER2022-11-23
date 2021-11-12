@@ -1,75 +1,51 @@
 /*exported 
 testExamineForm,
 testPrintTitlesAndIDs, 
-testGetClauseKeysThisForm,runTests
+,runTests
  */
 
-/*global fieldS_G , FormApp , databaseC, getClauseKeysThisForm ,formID_G ,writeAllQuestionsKeys,testgetCurrPropID,
-UnitTestingApp*/
+/*global  databaseC  , exportBR  , handleJSON
+UnitTestingApp , databaseNameG , nominalFreeRentG , nominalFreeRentG , nominalRentG , nominalTermG , nominalTermG 
+monthsDefaultG , populateSheet */
+// Need to add test for writing base rents to the database!
 
-
-// logs all of the titles of items in a form 
-function examineForm(form) {
-  var fitems = form.getItems();
-  for (var j = 0; j < fitems.length; j++) {
-    var title = fitems[j].getTitle()
-    var id = fitems[j].getId();
-    var itemTypeIs = fitems[j].getType();
-    var typeS = itemTypeIs.toString();
-    console.log(`Item title for: #${j} - ${title} ID: ${id} - type ${typeS}`);
-  }
-}
-
-function testExamineForm() {
-  var f = FormApp.openById(formID_G);
-  var ret = examineForm(f);
+// eslint-disable-next-line no-unused-vars
+function testExportBR() {
+  // eslint-disable-next-line no-undef
+  var dbInst = new databaseC();
+  var ret = exportBR(dbInst);
   return ret
 }
 
-function printTitlesAndIDS_(formID) {
-  var form = FormApp.openById(formID);
-  var items = form.getItems();
-  for (var i in items) {
-    console.log(items[i].getTitle() + ': ' + items[i].getId() + " / " + items[i].getHelpText());  // HelpText == Description
-  }
+function testHandleJSON() {
+  var ret = handleJSON();
+  if(!ret) {return false}
+  if (nominalFreeRentG == "6"
+    && nominalRentG == "60.00"
+    && nominalTermG == "36"
+    && monthsDefaultG == "12") { return true }
+  return false
 }
 
-function testPrintTitlesAndIDs() {
-  var retS = printTitlesAndIDS_(formID_G);
-  console.log(retS)
-}
-
-/**
- * Purpose: Get all the clauseKeys in this form
- *
- * @param  {String} param_name - param
- * @param  {itemReponse[]} param_name - an array of responses 
- * @return {String} retS - return value
- */
-function testGetClauseKeysThisForm() {
-  var dbInst = new databaseC("applesmysql");
-  var retS ="";
-  var ret = getClauseKeysThisForm(dbInst);
-  var l = ret.length;
-  for (var j = 0; j < l-1; j++){
-    retS=retS+(ret[j]+", ")
-}
-  retS = retS+ret[l-1];
-  fieldS_G==retS ? console.log("fieldS_G equals retS"): console.log("fieldS_G not equal to retS");
-  console.log(retS)
-}
-
+// eslint-disable-next-line no-unused-vars
 function runTests() {
-  var dbInst = new databaseC("applesmysql");
-  var propID = "";
+  // eslint-disable-next-line no-undef
+  var dbInst = new databaseC(databaseNameG);
+
+  // var userS = userEmail;
+  var testPID = '50fcd535-edb2-11eb-93f1-42010a800005';  // rsf should be 965 as a string
+
+
+  // eslint-disable-next-line no-undef
   const test = new UnitTestingApp();
   test.enable(); // tests will run below this line
   test.runInGas(true);
-  console.log("Deleting all records in prop_detail to run tests")
   if (test.isEnabled) {
-    test.assert(writeAllQuestionsKeys(), 'writeAllQuestionsKeys');
-    test.assert(propID=testgetCurrPropID(), `testgetCurrPropID: ${propID}`);
 
+    // eslint-disable-next-line no-undef
+    test.assert(testgetRSFfromPID(testPID) === "965", `testgetRSFfromPID with ${testPID}`);
+    test.assert(testHandleJSON(), `testHandleJSON`);
+    test.assert(populateSheet(), `populateSheet`);
   }
   dbInst.closeconn();
 }
