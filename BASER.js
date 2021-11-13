@@ -75,16 +75,20 @@ function crInitRow() {
   var fS = "crInitRow";
   try {
     // eslint-disable-next-line no-undef
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var ss = SpreadsheetApp.openById("10L4V9cHede6Q7iX0NQg2XZWjZU23oMUExc2KlcmpzoY");
     var sheetBR = ss.getSheetByName(baseRentSheetNameSG);
+    sheetBR.activate();
+     //var ss = SpreadsheetApp.getActiveSpreadsheet();
+    // var sheetBR = ss.getSheetByName(baseRentSheetNameSG);
     var lr = sheetBR.getLastRow();
+    Logger.log(`lr is ${lr}`)
     if (lr > lastRow) {
       throw new Error(`Last row is ${lr}; delete all rows past ${lastRow}`);
     }
-    // set dtlb named range for use in formulae
-    var dtlbRange = ss.getRange(`${baseRentSheetNameSG}!A${lastRow+1}`);
+    // getRange works for spreadsheet or sheet, but setNamedRange needs the spreadsheet
+    var dtlbRange = ss.getRange(`A${lastRow+1}`);
     ss.setNamedRange("DTLB", dtlbRange);
-    var dtlxRange = ss.getRange(`${baseRentSheetNameSG}!C${lastRow + 1}`);
+    var dtlxRange = ss.getRange(`C${lastRow + 1}`);
     ss.setNamedRange("DTLX", dtlxRange);
 
     // add the row
