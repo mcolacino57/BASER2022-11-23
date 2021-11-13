@@ -27,9 +27,10 @@ function onOpen(e) {
   var spreadsheet = SpreadsheetApp.getActive();
   var menuItems = [
     { name: 'Clear Sheet' , functionName: 'clrSheet' },
-    { name: 'Create Initial Row', functionName: 'crInitRow' },  // (6.3)
-    { name: 'Create Additional Row', functionName: 'crAddlRow' }, // (6.4)
-    { name: 'Export Base Rent', functionName: 'exportBR' }  // (6.5)
+    { name: 'Create Initial Row', functionName: 'crInitRow' },  
+    { name: 'Create Additional Row', functionName: 'crAddlRow' }, 
+    { name: 'Export Base Rent', functionName: 'exportBR' },
+    {name: 'Create Stepped Rent',functionName: 'crSteppedRentSchedule'} 
   ];
   spreadsheet.addMenu('Base Rent', menuItems);
   var ret = handleJSON(); // set globals from username.json (6.1)
@@ -87,8 +88,8 @@ function crInitRow() {
     ss.setNamedRange("DTLX", dtlxRange);
 
     // add the row
-    var brRow = crBaseRentRow("=InitialDate", nominalFreeRentG, 0);
-    sheetBR.appendRow(brRow);
+    crBaseRentRow(sheetBR, "=InitialDate", nominalFreeRentG, 0);
+    
   } catch (err) {
     // eslint-disable-next-line no-undef
     Logger.log(`In ${fS}: ${err}`);
@@ -116,11 +117,11 @@ function crAddlRow() {
   var fS = "crAddlRow";
   try {
     // eslint-disable-next-line no-undef
-    const ss = SpreadsheetApp.getActiveSpreadsheet()
+    const ss = SpreadsheetApp.getActiveSpreadsheet();
     const sheetBR = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(baseRentSheetNameSG);
+
     const startFromEndS = '=INDIRECT("R[-1]C[2]",FALSE)+1';  // hardwired difference
-    const brRow = crBaseRentRow(startFromEndS, monthsDefaultG, nominalRentG);
-    sheetBR.appendRow(brRow);
+    crBaseRentRow(sheetBR,startFromEndS, monthsDefaultG, nominalRentG);
     const lr = sheetBR.getLastRow();
     sheetBR.getRange(lr, rentPSFC).setNumberFormat("$#,##0.00;$(#,##0.00)");
     sheetBR.getRange(lr, rentAnnC).setNumberFormat("$#,##0;$(#,##0)");
@@ -139,18 +140,169 @@ function crAddlRow() {
 }
 
 /**
- * Purpose: create a base rent row for appending, creats formula fo endS and annRS
+ * Purpose: create a base rent row for appending, creates formula fo endS and annRS
+ * Also applies formatting
  *
+ * @param  {string} sheetBR - sheet in quo
  * @param  {string} startDateS - poke into start date
  * @param  {string} months - string but a number
  * @param {string} rentPSF - string but dollar value
  * @return {array}  - array of startDateS, months, endS, rentPSF, annRS
  */
-function crBaseRentRow(startDateS, months, rentPSF) {
+function crBaseRentRow(sheetBR,startDateS, months, rentPSF) {
   var endS = '=EDATE(INDIRECT("R[0]C[-2]",FALSE),INDIRECT("R[0]C[-1]",FALSE))-1';
   var annRS = '=INDIRECT("R[0]C[-1]",FALSE)*RSF';
-  return [startDateS, months, endS, rentPSF, annRS]
+  sheetBR.appendRow([startDateS, months, endS, rentPSF, annRS]);
+  const row = sheetBR.getLastRow();
+  const cellStartDate = sheetBR.getRange(`A${row}`);
+  const cellEndDate   = sheetBR.getRange(`C${row}`);
+  const cellRent      = sheetBR.getRange(`D${row}`);
+  const cellTotal     = sheetBR.getRange(`E${row}`);
+  
+  cellStartDate.setNumberFormat("M/d/yyyy");
+  cellEndDate.setNumberFormat("M/d/yyyy");
+  cellRent.setNumberFormat("$#,##0.00;$(#,##0.00)");
+  cellTotal.setNumberFormat("$#,##0;$(#,##0)");
+  return true
 }
+
+/**
+ * Purpose: extract dtlb, initial rent, and rental growth rate,
+ * build a schedule of rent steps, pro-rating as appropriate, and create
+ * use that list of rents to create a schedule of rents by calling crBaseRentRow
+ *
+ * @param  {String} param_name - param
+ * @param  {itemReponse[]} param_name - an array of responses 
+ * @return {String} retS - return value
+ */
+// eslint-disable-next-line no-unused-vars
+function crSteppedRentSchedule() {
+  const fS = "crSteppedRentSchedule";
+  try {
+    var stepObj = getStepValues();
+    Logger.log(stepObj);
+    // const lr = SpreadsheetApp.getActiveSpreadsheet().getLastRow();
+    // If we haven't created an initial row, create one
+    // if (lr === lastRow+1) {
+    //   crInitRow();
+    // }
+    crSteppedRent(stepObj);
+    
+
+  } catch(err) {
+  var probS = `In ${fS}: ${err}`;
+  Logger.log(probS);
+  return false
+  }
+}
+
+/**
+ * Purpose: takes the stepObj and returns an array of rent steps and dates
+ *
+ * @param  {object} stepObj - step object
+ * @return {object[]} retA - [{startDate: sd, endDate: ed, rent: r},...]
+ */
+function crSteppedRent(stepObj) {
+  const fS="crSteppedRent";
+  try {
+    const sheetBR = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(baseRentSheetNameSG);
+    const lr = sheetBR.getLastRow();
+    if (lr === lastRow) {
+      Logger.log(`Trying to create initial row`);
+      crInitRow();
+    }
+    var sdLocDate = new Date(stepObj.dtlb);
+    var sdLocS = sdLocDate.toDateString();
+    
+    // var edLoc = new Date(stepObj.dtlx);
+    var rentLoc = stepObj.initialRent;
+    const offsetStart = '=INDIRECT("R[-1]C[2]",FALSE)+1';  // hardwired difference
+    // for loop 
+    const steps = Math.floor((stepObj.leaseTermMons) / 12);
+    const per = stepObj.stepPercent;
+    Logger.log(`Percentage is: ${ per}`);
+    
+    Logger.log(`rentLoc: ${rentLoc}`);
+    for (let i = 0; i < steps; i++){
+      Logger.log(`step: ${((1.0 + per) ^ i)}`);
+      //rentLoc = rentLoc * ((1.0 + per) ^ i);
+      Logger.log(`rentLoc: ${rentLoc}`);
+
+      crBaseRentRow(sheetBR,sdLocS, 12, rentLoc);
+      rentLoc = rentLoc + (rentLoc * per);
+      sdLocS = offsetStart;
+      // sdLocS = offsetStart;
+    }
+  
+  } catch (err) {
+    var probS = `In ${fS} error ${err}`;
+    console.log(probS);
+    throw new Error(probS);
+    }
+  
+}
+
+
+/**
+ * Purpose: extracts all data needed for computing stepped rent from the s
+ * spreadsheet
+ *
+ *
+ * @return {String} retS - return value
+ */
+
+
+function getStepValues() {
+  const fS = "getStepValues";
+  try {
+    var retObj = {};
+    Logger.log("entered getStepValues")
+
+    var dtlbRange = SpreadsheetApp.getActiveSpreadsheet().getRangeByName('DTLB');
+    var dtlb = dtlbRange.getValue();
+    if (!dtlb) { throw new Error(`unable to find dtlb`) }
+    retObj.dtlb = dtlb;
+
+    var dtlxRange = SpreadsheetApp.getActiveSpreadsheet().getRangeByName('DTLX');
+    const dtlx = dtlxRange.getValue();
+    if (!dtlx) { throw new Error(`unable to find dtlx`) }
+    retObj.dtlx = dtlx;
+
+    var initialRentRange = SpreadsheetApp.getActiveSpreadsheet().getRangeByName('InitialRent');
+    const initialRent = initialRentRange.getValue();
+    if (!initialRent) { throw new Error(`unable to find initialRent`) }
+    retObj.initialRent = initialRent;
+
+    var srsdRange = SpreadsheetApp.getActiveSpreadsheet().getRangeByName('SteppedRentStartDate');
+    const srsd = srsdRange.getValue();
+    if (!srsd) { throw new Error(`unable to find srsd`) }
+    retObj.srsd = srsd;
+
+    var stepLengthRange = SpreadsheetApp.getActiveSpreadsheet().getRangeByName('StepLength');
+    const stepLength = stepLengthRange.getValue();
+    if (!stepLength) { throw new Error(`unable to find stepLength`) }
+    retObj.stepLength = stepLength;
+
+    var stepPercentRange = SpreadsheetApp.getActiveSpreadsheet().getRangeByName('StepPercent');
+    const stepPercent = stepPercentRange.getValue();
+    if (!stepPercent) { throw new Error(`unable to find stepPercent`) }
+    retObj.stepPercent = stepPercent;
+
+    var leaseTermMonsRange = SpreadsheetApp.getActiveSpreadsheet().getRangeByName('LeaseTermMons');
+    const leaseTermMons = leaseTermMonsRange.getValue();
+    if (!leaseTermMons) { throw new Error(`unable to find leaseTermMons`) }
+    retObj.leaseTermMons = leaseTermMons;
+    Logger.log(`retobj is: ${JSON.stringify(retObj)}`);
+    return retObj
+  }
+  catch(err) {
+    var probS = `in ${fS} error: ${err}`;
+    console.log(probS);
+    throw new Error(probS)
+  }
+}
+
+
 
 
 // Major changes on 210802
@@ -165,7 +317,7 @@ function populateSheet() {
   var errS = "Can't populate sheet";
   try {
     // eslint-disable-next-line no-undef
-    const dbInst = new databaseC("applesmysql");
+    const dbInst = new databaseC(databaseNameG);
     // eslint-disable-next-line no-undef
     var [propID, propName] = getCurrentProposal(dbInst);
     // eslint-disable-next-line no-undef
@@ -209,11 +361,12 @@ function populateSheet() {
  * @return {String} retS - return value
  */
 
+// eslint-disable-next-line no-unused-vars
 function exportBR() {
   var fS = "exportBR";
   try {
     // eslint-disable-next-line no-undef
-    const dbInst = new databaseC("applesmysql");
+    const dbInst = new databaseC(databaseNameG);
     // eslint-disable-next-line no-undef
     var sheetBR = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(baseRentSheetNameSG);
     var cellPID = sheetBR.getRange("pid").getValue(); // get proposal id from sheet
@@ -269,7 +422,43 @@ function exportBR() {
   return true
 }
 
-
+ /**
+ * return an object describing what was passed
+ * @param {*} ob the thing to analyze
+ * @return {object} object information
+ */
+function whatAmI (ob) {
+  try {
+    // test for an object
+    if (ob !== Object(ob)) {
+        return {
+          type:typeof ob,
+          value: ob,
+          length:typeof ob === 'string' ? ob.length : null 
+        } ;
+    }
+    else {
+      try {
+        var stringGuy = JSON.stringify(ob);
+      }
+      catch (err) {
+        stringGuy = '{"result":"unable to stringify"}';
+      }
+      return {
+        type:typeof ob ,
+        value : stringGuy,
+        name:ob.constructor ? ob.constructor.name : null,
+        nargs:ob.constructor ? ob.constructor.arity : null,
+        length:Array.isArray(ob) ? ob.length:null
+      };       
+    }
+  }
+  catch (err) {
+    return {
+      type:'unable to figure out what I am'
+    } ;
+  }
+  }
 
 /*************************UI Utilities************************ */
 
@@ -298,29 +487,6 @@ function duplicateBRAlert() {
   }
 
 }
-
-/**********************General Utility ********************* */
-
-// eslint-disable-next-line no-unused-vars
-function updateForm() {
-  // call your form and connect to the drop-down item
-  // eslint-disable-next-line no-undef
-  var form = FormApp.openById("1l2wzhq1-dIgS9LJZ2skO1L9t5T_-V3E3vYmLHT2IJDQ");
-
-  var proposalList = form.getItemById("816438396").asListItem();
-
-  // convert the array ignoring empty cells
-
-  // populate the drop-down with the array data
-  // eslint-disable-next-line no-undef
-  proposalList.setChoiceValues(getProposalNames("Michael Colacino"));
-
-}
-
-
-
-/**********************Test Functions ******************* */
-// Moved to CheckTest
 
 
 
@@ -357,6 +523,7 @@ function handleJSON() {
   }
   return true
 }
+
 
 
 
