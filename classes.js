@@ -1,5 +1,6 @@
-/*global getPropSize,getProposalNamesAndIDs,userEmail,DriveApp,DocumentApp,getItemResps,getAnswerWithMap,Jdbc,Utilities*/
-/*exported proposalC,formClauseC,brokerC,docC,questionC,responseC,databaseC */
+/*global getPropSize,getProposalNamesAndIDs,userEmail,DriveApp,DocumentApp,getItemResps,getAnswerWithMap,Jdbc ,
+Utilities , SpreadsheetApp */
+/*exported proposalC,formClauseC,brokerC,docC,questionC,responseC,databaseC ,ssC*/
 /*********************proposal class ******************************** */
 class proposalC {
   constructor(dbInst,propName){
@@ -114,6 +115,23 @@ class brokerC extends personC {
     return [this.replacename, this.replacecompany, this.replaceaddress]
   }
 
+}
+/***************** spreadsheet class ************************************ */
+
+class ssC {
+  constructor(ssID, sName) {
+    this.ID = ssID;
+    this.sheetName = sName;
+    this.ss = SpreadsheetApp.openById(ssID);
+    this.sheet = this.ss.getSheetByName(sName);
+    this.sheet.activate();
+    this.lastRow = this.sheet.lastRow();
+    this.lastHeaderRow = 4;
+  }
+  setSheet(ss, newSname) {
+    this.sheet = this.ssgetSheetByName(newSname);
+  }
+  
 }
 
 /***************** doc class ************************************ */
