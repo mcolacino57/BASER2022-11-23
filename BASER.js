@@ -1,7 +1,7 @@
 
 /*exported onOpen,getItemResps,getAnswerWithMap , databaseNameG */
 
-/*global SpreadsheetApp , BetterLog , Logger*/
+/*global SpreadsheetApp , BetterLog , Logger , ssC */
 
 // should come from the json
 var nominalFreeRentG = "6";
@@ -9,6 +9,8 @@ var nominalRentG = "60";
 // eslint-disable-next-line no-unused-vars
 var nominalTermG = "36";
 var monthsDefaultG = "12";
+const ssIDG = "10L4V9cHede6Q7iX0NQg2XZWjZU23oMUExc2KlcmpzoY";
+const baseRentSheetNameSG = "Base Rent Schedule";
 
 // eslint-disable-next-line no-undef
 // const userEmail = Session.getActiveUser().getEmail();
@@ -20,17 +22,16 @@ Logger = BetterLog.useSpreadsheet(ssLogID);
 const databaseNameG = "applesmysql";
 // last row with header; don't delete this or anything above
 const lastRow = 4; // hardwired; note that if the header on the sheet changes this must also
-const baseRentSheetNameSG = "Base Rent Schedule";
 
 // eslint-disable-next-line no-unused-vars
 function onOpen(e) {
   var spreadsheet = SpreadsheetApp.getActive();
   var menuItems = [
-    { name: 'Clear Sheet' , functionName: 'clrSheet' },
-    { name: 'Create Initial Row', functionName: 'crInitRow' },  
-    { name: 'Create Additional Row', functionName: 'crAddlRow' }, 
+    { name: 'Clear Sheet', functionName: 'clrSheet' },
+    { name: 'Create Initial Row', functionName: 'crInitRow' },
+    { name: 'Create Additional Row', functionName: 'crAddlRow' },
     { name: 'Export Base Rent', functionName: 'exportBR' },
-    {name: 'Create Stepped Rent',functionName: 'crSteppedRentSchedule'} 
+    { name: 'Create Stepped Rent', functionName: 'crSteppedRentSchedule' }
   ];
   spreadsheet.addMenu('Base Rent', menuItems);
   var ret = handleJSON(); // set globals from username.json (6.1)
@@ -49,16 +50,17 @@ function onOpen(e) {
 function clrSheet() {
   var fS = "clrSheet";
   try {
-    const sheetBR = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(baseRentSheetNameSG);
-    const lr = sheetBR.getLastRow();
-    sheetBR.deleteRows(lastRow + 1, lr - lastRow);
+    // const sheetBR = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(baseRentSheetNameSG);
+    const ssInst = new ssC(ssIDG, baseRentSheetNameSG);
+    const lr = ssInst.sheet.getLastRow();
+    ssInst.sheet.deleteRows(ssInst.lastHeaderRow + 1, lr - ssInst.lastHeaderRow);
     // also need to reset named ranges
-    
+
   } catch (err) {
     const probS = `In ${fS}: ${err}`;
     Logger.log(probS);
     throw new Error(probS);
-    
+
   }
   return true;
 }
@@ -74,26 +76,29 @@ function clrSheet() {
 function crInitRow() {
   var fS = "crInitRow";
   try {
+    const ssInst = new ssC("10L4V9cHede6Q7iX0NQg2XZWjZU23oMUExc2KlcmpzoY", baseRentSheetNameSG);
+    const ss = ssInst.ss;
+    const sheetBR = sInst.sheet;
     // eslint-disable-next-line no-undef
-    var ss = SpreadsheetApp.openById("10L4V9cHede6Q7iX0NQg2XZWjZU23oMUExc2KlcmpzoY");
-    var sheetBR = ss.getSheetByName(baseRentSheetNameSG);
-    sheetBR.activate();
-     //var ss = SpreadsheetApp.getActiveSpreadsheet();
+    // var ss = SpreadsheetApp.openById("10L4V9cHede6Q7iX0NQg2XZWjZU23oMUExc2KlcmpzoY");
+    // var sheetBR = ss.getSheetByName(baseRentSheetNameSG);
+    // sheetBR.activate();
+    //var ss = SpreadsheetApp.getActiveSpreadsheet();
     // var sheetBR = ss.getSheetByName(baseRentSheetNameSG);
     var lr = sheetBR.getLastRow();
-    Logger.log(`lr is ${lr}`)
+    // Logger.log(`lr is ${lr}`)
     if (lr > lastRow) {
       throw new Error(`Last row is ${lr}; delete all rows past ${lastRow}`);
     }
     // getRange works for spreadsheet or sheet, but setNamedRange needs the spreadsheet
-    var dtlbRange = ss.getRange(`A${lastRow+1}`);
+    var dtlbRange = ss.getRange(`A${lastRow + 1}`);
     ss.setNamedRange("DTLB", dtlbRange);
     var dtlxRange = ss.getRange(`C${lastRow + 1}`);
     ss.setNamedRange("DTLX", dtlxRange);
 
     // add the row
-    crBaseRentRow(sheetBR, "=InitialDate", nominalFreeRentG, 0);
-    
+    crBaseRentRow(ssInst.sheetBR, "=InitialDate", nominalFreeRentG, 0);
+
   } catch (err) {
     // eslint-disable-next-line no-undef
     Logger.log(`In ${fS}: ${err}`);
@@ -125,7 +130,7 @@ function crAddlRow() {
     const sheetBR = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(baseRentSheetNameSG);
 
     const startFromEndS = '=INDIRECT("R[-1]C[2]",FALSE)+1';  // hardwired difference
-    crBaseRentRow(sheetBR,startFromEndS, monthsDefaultG, nominalRentG);
+    crBaseRentRow(sheetBR, startFromEndS, monthsDefaultG, nominalRentG);
     const lr = sheetBR.getLastRow();
     sheetBR.getRange(lr, rentPSFC).setNumberFormat("$#,##0.00;$(#,##0.00)");
     sheetBR.getRange(lr, rentAnnC).setNumberFormat("$#,##0;$(#,##0)");
@@ -138,7 +143,7 @@ function crAddlRow() {
     // eslint-disable-next-line no-undef
     SpreadsheetApp.getUi() // Or DocumentApp or FormApp.
       .alert(`${err}`);
-      return false
+    return false
   }
   return true
 }
@@ -153,16 +158,19 @@ function crAddlRow() {
  * @param {string} rentPSF - string but dollar value
  * @return {array}  - array of startDateS, months, endS, rentPSF, annRS
  */
-function crBaseRentRow(sheetBR,startDateS, months, rentPSF) {
+function crBaseRentRow(sheetBR, startDateS, months, rentPSF) {
+  // computes end date from start date and duration months
   var endS = '=EDATE(INDIRECT("R[0]C[-2]",FALSE),INDIRECT("R[0]C[-1]",FALSE))-1';
-  var annRS = '=INDIRECT("R[0]C[-1]",FALSE)*RSF';
+  // This looks back one column for the base rent, uses RSF, and prorates for the number of 
+  // months from three columns back
+  var annRS = '=INDIRECT("R[0]C[-1]",FALSE)*RSF*INDIRECT("R[0]C[-3]",FALSE)/12';
   sheetBR.appendRow([startDateS, months, endS, rentPSF, annRS]);
   const row = sheetBR.getLastRow();
   const cellStartDate = sheetBR.getRange(`A${row}`);
-  const cellEndDate   = sheetBR.getRange(`C${row}`);
-  const cellRent      = sheetBR.getRange(`D${row}`);
-  const cellTotal     = sheetBR.getRange(`E${row}`);
-  
+  const cellEndDate = sheetBR.getRange(`C${row}`);
+  const cellRent = sheetBR.getRange(`D${row}`);
+  const cellTotal = sheetBR.getRange(`E${row}`);
+
   cellStartDate.setNumberFormat("M/d/yyyy");
   cellEndDate.setNumberFormat("M/d/yyyy");
   cellRent.setNumberFormat("$#,##0.00;$(#,##0.00)");
@@ -189,17 +197,17 @@ function crSteppedRentSchedule() {
     const lr = sheetBR.getLastRow();
     if (lr === lastRow) {
       crInitRow();
-      }
+    }
 
     var stepObj = getStepValues();
     Logger.log(stepObj);
     crSteppedRent(stepObj);
-    
 
-  } catch(err) {
-  var probS = `In ${fS}: ${err}`;
-  Logger.log(probS);
-  return false
+
+  } catch (err) {
+    var probS = `In ${fS}: ${err}`;
+    Logger.log(probS);
+    return false
   }
 }
 
@@ -210,33 +218,41 @@ function crSteppedRentSchedule() {
  * @return {object[]} retA - [{startDate: sd, endDate: ed, rent: r},...]
  */
 function crSteppedRent(stepObj) {
-  const fS="crSteppedRent";
+  const fS = "crSteppedRent";
   try {
     const ss = SpreadsheetApp.openById("10L4V9cHede6Q7iX0NQg2XZWjZU23oMUExc2KlcmpzoY");
     const sheetBR = ss.getSheetByName(baseRentSheetNameSG);
     sheetBR.activate();
-    const lr = sheetBR.getLastRow();
-    if (lr === lastRow) {
-      Logger.log(`Trying to create initial row`);
-      crInitRow();
-    }
+
     var rentLoc = stepObj.initialRent;
     const offsetStart = '=INDIRECT("R[-1]C[2]",FALSE)+1';  // hardwired difference
-    // for loop 
     const steps = Math.floor((stepObj.leaseTermMons) / 12);
+    const remainderMons = stepObj.leaseTermMons % 12;
     const per = stepObj.stepPercent;
-    for (let i = 0; i < steps; i++){
-      var mons = (i == 0) ? 12 - nominalFreeRentG : 12 ;
-      crBaseRentRow(sheetBR,offsetStart, mons, rentLoc);
+    // for loop 
+    for (let i = 0; i <= steps; i++) {
+      var mons = 12;
+      if (i == 0) {
+        mons = 12 - nominalFreeRentG;
+      }
+      if (remainderMons > 0) {
+        if (i == steps) {
+          mons = remainderMons;
+        }
+      }
+      if (remainderMons == 0 && i === steps) {
+        break;
+      }
+      crBaseRentRow(sheetBR, offsetStart, mons, rentLoc);
       rentLoc = rentLoc + (rentLoc * per);
     }
-  
+
   } catch (err) {
     var probS = `In ${fS} error ${err}`;
     console.log(probS);
     throw new Error(probS);
-    }
-  
+  }
+
 }
 
 
@@ -299,7 +315,7 @@ function getStepValues() {
     Logger.log(`retobj is: ${JSON.stringify(retObj)}`);
     return retObj
   }
-  catch(err) {
+  catch (err) {
     var probS = `in ${fS} error: ${err}`;
     console.log(probS);
     throw new Error(probS)
@@ -378,9 +394,9 @@ function exportBR() {
       if (updateYN) {
         // eslint-disable-next-line no-undef
         var ret = deleteFromTable(dbInst, "base_rent", cellPID);
-        if(!ret) { throw new Error('cant delete from base_rent table')}
+        if (!ret) { throw new Error('cant delete from base_rent table') }
       }
-      else { return true}
+      else { return true }
     }
     var lrS = sheetBR.getLastRow().toString(); // last row string
     var brRangeS = "A5:E" + lrS;  // set range from A to E column; fix if columns change
@@ -498,7 +514,7 @@ function handleJSON() {
  * @param  {itemReponse[]} itemResponses - an array of responses from a form
  * @return {String} answer - an answer corresponding to question or "Not Found"
  */
- function getAnswerWithMap(question, itemResponses) {
+function getAnswerWithMap(question, itemResponses) {
   var responses = itemResponses.map(function (response) {
     return response.getItem().getTitle();
   });
