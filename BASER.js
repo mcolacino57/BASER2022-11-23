@@ -1,7 +1,8 @@
 
 /*exported onOpen,getItemResps,getAnswerWithMap , databaseNameG */
 
-/*global SpreadsheetApp , BetterLog , Logger , ssC */
+/*global SpreadsheetApp , BetterLog , Logger , ssC  , getRSFfromPID , 
+getCommenceAndTermForCurrent , getCurrentProposal , databaseC */
 
 // should come from the json
 var nominalFreeRentG = "6";
@@ -9,6 +10,7 @@ var nominalRentG = "60";
 // eslint-disable-next-line no-unused-vars
 var nominalTermG = "36";
 var monthsDefaultG = "12";
+
 const ssIDG = "10L4V9cHede6Q7iX0NQg2XZWjZU23oMUExc2KlcmpzoY";
 const baseRentSheetNameSG = "Base Rent Schedule";
 
@@ -53,6 +55,7 @@ function clrSheet() {
     // const sheetBR = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(baseRentSheetNameSG);
     const ssInst = new ssC(ssIDG, baseRentSheetNameSG);
     const lr = ssInst.sheet.getLastRow();
+    if (lr === ssInst.lastHeaderRow) { return true }
     ssInst.sheet.deleteRows(ssInst.lastHeaderRow + 1, lr - ssInst.lastHeaderRow);
     // also need to reset named ranges
 
@@ -76,15 +79,9 @@ function clrSheet() {
 function crInitRow() {
   var fS = "crInitRow";
   try {
-    const ssInst = new ssC("10L4V9cHede6Q7iX0NQg2XZWjZU23oMUExc2KlcmpzoY", baseRentSheetNameSG);
+    const ssInst = new ssC(ssIDG, baseRentSheetNameSG);
     const ss = ssInst.ss;
-    const sheetBR = sInst.sheet;
-    // eslint-disable-next-line no-undef
-    // var ss = SpreadsheetApp.openById("10L4V9cHede6Q7iX0NQg2XZWjZU23oMUExc2KlcmpzoY");
-    // var sheetBR = ss.getSheetByName(baseRentSheetNameSG);
-    // sheetBR.activate();
-    //var ss = SpreadsheetApp.getActiveSpreadsheet();
-    // var sheetBR = ss.getSheetByName(baseRentSheetNameSG);
+    const sheetBR = ssInst.sheet;
     var lr = sheetBR.getLastRow();
     // Logger.log(`lr is ${lr}`)
     if (lr > lastRow) {
@@ -97,7 +94,7 @@ function crInitRow() {
     ss.setNamedRange("DTLX", dtlxRange);
 
     // add the row
-    crBaseRentRow(ssInst.sheetBR, "=InitialDate", nominalFreeRentG, 0);
+    crBaseRentRow(sheetBR, "=InitialDate", nominalFreeRentG, 0);
 
   } catch (err) {
     // eslint-disable-next-line no-undef
@@ -125,9 +122,9 @@ const rentAnnC = 5;  // hardwired annual expense column
 function crAddlRow() {
   var fS = "crAddlRow";
   try {
-    // eslint-disable-next-line no-undef
-    const ss = SpreadsheetApp.getActiveSpreadsheet();
-    const sheetBR = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(baseRentSheetNameSG);
+    const ssInst = new ssC(ssIDG, baseRentSheetNameSG);
+    const ss = ssInst.ss;
+    const sheetBR = ssInst.sheet;
 
     const startFromEndS = '=INDIRECT("R[-1]C[2]",FALSE)+1';  // hardwired difference
     crBaseRentRow(sheetBR, startFromEndS, monthsDefaultG, nominalRentG);
@@ -191,19 +188,16 @@ function crBaseRentRow(sheetBR, startDateS, months, rentPSF) {
 function crSteppedRentSchedule() {
   const fS = "crSteppedRentSchedule";
   try {
-    const ss = SpreadsheetApp.openById("10L4V9cHede6Q7iX0NQg2XZWjZU23oMUExc2KlcmpzoY");
-    const sheetBR = ss.getSheetByName(baseRentSheetNameSG);
-    sheetBR.activate();
+    const ssInst = new ssC(ssIDG, baseRentSheetNameSG);
+    const ss = ssInst.ss;
+    const sheetBR = ss.ssInst.sheet;
     const lr = sheetBR.getLastRow();
-    if (lr === lastRow) {
+    if (lr === ssInst.lastHeaderRow) {
       crInitRow();
     }
-
     var stepObj = getStepValues();
     Logger.log(stepObj);
     crSteppedRent(stepObj);
-
-
   } catch (err) {
     var probS = `In ${fS}: ${err}`;
     Logger.log(probS);
@@ -220,10 +214,9 @@ function crSteppedRentSchedule() {
 function crSteppedRent(stepObj) {
   const fS = "crSteppedRent";
   try {
-    const ss = SpreadsheetApp.openById("10L4V9cHede6Q7iX0NQg2XZWjZU23oMUExc2KlcmpzoY");
-    const sheetBR = ss.getSheetByName(baseRentSheetNameSG);
-    sheetBR.activate();
-
+    const ssInst = new ssC(ssIDG, baseRentSheetNameSG);
+    // const ss = ssInst.ss;
+    const sheetBR = ssInst.sheet;
     var rentLoc = stepObj.initialRent;
     const offsetStart = '=INDIRECT("R[-1]C[2]",FALSE)+1';  // hardwired difference
     const steps = Math.floor((stepObj.leaseTermMons) / 12);
@@ -246,15 +239,12 @@ function crSteppedRent(stepObj) {
       crBaseRentRow(sheetBR, offsetStart, mons, rentLoc);
       rentLoc = rentLoc + (rentLoc * per);
     }
-
   } catch (err) {
     var probS = `In ${fS} error ${err}`;
     console.log(probS);
     throw new Error(probS);
   }
-
 }
-
 
 /**
  * Purpose: extracts all data needed for computing stepped rent from the spreadsheet
@@ -272,12 +262,10 @@ function crSteppedRent(stepObj) {
 function getStepValues() {
   const fS = "getStepValues";
   try {
+    const ssInst = new ssC(ssIDG, baseRentSheetNameSG);
     var retObj = {};
     Logger.log("entered getStepValues");
-    var ss = SpreadsheetApp.openById("10L4V9cHede6Q7iX0NQg2XZWjZU23oMUExc2KlcmpzoY");
-    var sheetBR = ss.getSheetByName(baseRentSheetNameSG);
-    sheetBR.activate();
-
+    var ss = ssInst.ss;
     var dtlbRange = ss.getRangeByName('DTLB');
     var dtlb = dtlbRange.getValue();
     if (!dtlb) { throw new Error(`unable to find dtlb`) }
@@ -333,41 +321,55 @@ function populateSheet() {
   var fS = "populateSheet";
   var errS = "Can't populate sheet";
   try {
-    // eslint-disable-next-line no-undef
     const dbInst = new databaseC(databaseNameG);
-    // eslint-disable-next-line no-undef
-    var [propID, propName] = getCurrentProposal(dbInst);
-    // eslint-disable-next-line no-undef
-    var rsf = getRSFfromPID(dbInst, propID);
-    // eslint-disable-next-line no-undef
-    var [commDate, leaseTerm] = getCommenceAndTermForCurrent(dbInst, propID);
-    // eslint-disable-next-line no-undef
-    var sheetBR = SpreadsheetApp.getActive().getSheetByName(baseRentSheetNameSG);
-    if (!sheetBR) { throw new Error(`can't get sheet for Base Rent Schedule`) }
-    // eslint-disable-next-line no-undef
-    var ssAssum = SpreadsheetApp.getActive().getSheetByName('Assumptions');
-    if (!ssAssum) { throw new Error(`can't get sheet for Assumptions`) }
-    var pidRange = sheetBR.getRange('pid');
-    var pnameRange = sheetBR.getRange('propName');
-    var rsfRange = ssAssum.getRange('RSF');
-    var commDateRange = ssAssum.getRange('InitialDate');
-    var leaseTermRange = ssAssum.getRange('LeaseTermMons');
-
-    commDateRange.setValues([[commDate]]);
-    leaseTermRange.setValues([[leaseTerm]]);
-    pidRange.setValues([[propID]]);
-    rsfRange.setValues([[rsf]]);
-    pnameRange.setValues([[propName]]);
+    var [propID, propName] = getCurrentProposal(dbInst);    // BASERSQL
+    setSheetProposal(propID,propName);
+    setSheetAssumptions(dbInst, propID); 
   }
   catch (err) {
     // eslint-disable-next-line no-undef
-    Logger.log(`In ${fS}: ${err}`);
+    Logger.log(`In ${fS} ${err}`);
     // eslint-disable-next-line no-undef
     SpreadsheetApp.getUi() // Or DocumentApp or FormApp.
       .alert(`${errS}: ${err}`);
     return false;
   }
   return true
+}
+
+function setSheetProposal(propID,propName) {
+  const fS = "setSheetProposal";
+  try {
+    const ssInst = new ssC(ssIDG, baseRentSheetNameSG);
+    const sheetBR = ssInst.sheet;
+    const pidRange = sheetBR.getRange('pid');
+    pidRange.setValues([[propID]]);
+    const pnameRange = sheetBR.getRange('propName');
+    pnameRange.setValues([[propName]]);
+  } catch (err) {
+    var probS = `-> ${fS} error ${err}`;
+    throw new Error(probS);
+  }
+}
+
+function setSheetAssumptions(dbInst,propID){
+  const fS = "setSheetAssumptions";
+  try {
+    const ssInst = new ssC(ssIDG, 'Assumptions');
+    const ssAssum = ssInst.sheet;
+    const rsf = getRSFfromPID(dbInst, propID);
+    const rsfRange = ssAssum.getRange('RSF');
+    rsfRange.setValues([[rsf]]);
+    var [commDate, leaseTerm] = getCommenceAndTermForCurrent(dbInst, propID); // BASERSQL
+    const commDateRange = ssAssum.getRange('InitialDate');
+    commDateRange.setValues([[commDate]]);
+    const leaseTermRange = ssAssum.getRange('LeaseTermMons');
+    leaseTermRange.setValues([[leaseTerm]]);
+  
+  } catch (err) {
+    var probS = `-> ${fS} error ${err}`;
+    throw new Error(probS);
+  }
 }
 
 /************************EXPORT BASE RENT************************* */

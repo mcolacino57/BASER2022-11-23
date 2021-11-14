@@ -125,11 +125,12 @@ class ssC {
     this.ss = SpreadsheetApp.openById(ssID);
     this.sheet = this.ss.getSheetByName(sName);
     this.sheet.activate();
-    this.lastRow = this.sheet.lastRow();
+    this.lastRow = this.sheet.getLastRow();
     this.lastHeaderRow = 4;
   }
-  setSheet(ss, newSname) {
-    this.sheet = this.ssgetSheetByName(newSname);
+  setNewSheet(newSname) {
+    this.sheet = this.ss.getSheetByName(newSname);
+    this.sheet.activate();
   }
   
 }
