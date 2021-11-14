@@ -183,13 +183,16 @@ function crBaseRentRow(sheetBR,startDateS, months, rentPSF) {
 function crSteppedRentSchedule() {
   const fS = "crSteppedRentSchedule";
   try {
+    const ss = SpreadsheetApp.openById("10L4V9cHede6Q7iX0NQg2XZWjZU23oMUExc2KlcmpzoY");
+    const sheetBR = ss.getSheetByName(baseRentSheetNameSG);
+    sheetBR.activate();
+    const lr = sheetBR.getLastRow();
+    if (lr === lastRow) {
+      crInitRow();
+      }
+
     var stepObj = getStepValues();
     Logger.log(stepObj);
-    // const lr = SpreadsheetApp.getActiveSpreadsheet().getLastRow();
-    // If we haven't created an initial row, create one
-    // if (lr === lastRow+1) {
-    //   crInitRow();
-    // }
     crSteppedRent(stepObj);
     
 
@@ -209,33 +212,23 @@ function crSteppedRentSchedule() {
 function crSteppedRent(stepObj) {
   const fS="crSteppedRent";
   try {
-    const sheetBR = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(baseRentSheetNameSG);
+    const ss = SpreadsheetApp.openById("10L4V9cHede6Q7iX0NQg2XZWjZU23oMUExc2KlcmpzoY");
+    const sheetBR = ss.getSheetByName(baseRentSheetNameSG);
+    sheetBR.activate();
     const lr = sheetBR.getLastRow();
     if (lr === lastRow) {
       Logger.log(`Trying to create initial row`);
       crInitRow();
     }
-    var sdLocDate = new Date(stepObj.dtlb);
-    var sdLocS = sdLocDate.toDateString();
-    
-    // var edLoc = new Date(stepObj.dtlx);
     var rentLoc = stepObj.initialRent;
     const offsetStart = '=INDIRECT("R[-1]C[2]",FALSE)+1';  // hardwired difference
     // for loop 
     const steps = Math.floor((stepObj.leaseTermMons) / 12);
     const per = stepObj.stepPercent;
-    Logger.log(`Percentage is: ${ per}`);
-    
-    Logger.log(`rentLoc: ${rentLoc}`);
     for (let i = 0; i < steps; i++){
-      Logger.log(`step: ${((1.0 + per) ^ i)}`);
-      //rentLoc = rentLoc * ((1.0 + per) ^ i);
-      Logger.log(`rentLoc: ${rentLoc}`);
-
-      crBaseRentRow(sheetBR,sdLocS, 12, rentLoc);
+      var mons = (i == 0) ? 12 - nominalFreeRentG : 12 ;
+      crBaseRentRow(sheetBR,offsetStart, mons, rentLoc);
       rentLoc = rentLoc + (rentLoc * per);
-      sdLocS = offsetStart;
-      // sdLocS = offsetStart;
     }
   
   } catch (err) {
@@ -248,51 +241,58 @@ function crSteppedRent(stepObj) {
 
 
 /**
- * Purpose: extracts all data needed for computing stepped rent from the s
- * spreadsheet
+ * Purpose: extracts all data needed for computing stepped rent from the spreadsheet
  *
- *
- * @return {String} retS - return value
+ * @return {object} retObj - {
+ * dtlb: <val>,
+ * dtlx: <val>,
+ * initialRent: <val>,
+ * srsd: <val>,
+ * stepLength: <val>, 
+ * stepPercent: <val>, 
+ * leaseTermMons: <val> 
+ * }
  */
-
-
 function getStepValues() {
   const fS = "getStepValues";
   try {
     var retObj = {};
-    Logger.log("entered getStepValues")
+    Logger.log("entered getStepValues");
+    var ss = SpreadsheetApp.openById("10L4V9cHede6Q7iX0NQg2XZWjZU23oMUExc2KlcmpzoY");
+    var sheetBR = ss.getSheetByName(baseRentSheetNameSG);
+    sheetBR.activate();
 
-    var dtlbRange = SpreadsheetApp.getActiveSpreadsheet().getRangeByName('DTLB');
+    var dtlbRange = ss.getRangeByName('DTLB');
     var dtlb = dtlbRange.getValue();
     if (!dtlb) { throw new Error(`unable to find dtlb`) }
     retObj.dtlb = dtlb;
 
-    var dtlxRange = SpreadsheetApp.getActiveSpreadsheet().getRangeByName('DTLX');
+    var dtlxRange = ss.getRangeByName('DTLX');
     const dtlx = dtlxRange.getValue();
     if (!dtlx) { throw new Error(`unable to find dtlx`) }
     retObj.dtlx = dtlx;
 
-    var initialRentRange = SpreadsheetApp.getActiveSpreadsheet().getRangeByName('InitialRent');
+    var initialRentRange = ss.getRangeByName('InitialRent');
     const initialRent = initialRentRange.getValue();
     if (!initialRent) { throw new Error(`unable to find initialRent`) }
     retObj.initialRent = initialRent;
 
-    var srsdRange = SpreadsheetApp.getActiveSpreadsheet().getRangeByName('SteppedRentStartDate');
+    var srsdRange = ss.getRangeByName('SteppedRentStartDate');
     const srsd = srsdRange.getValue();
     if (!srsd) { throw new Error(`unable to find srsd`) }
     retObj.srsd = srsd;
 
-    var stepLengthRange = SpreadsheetApp.getActiveSpreadsheet().getRangeByName('StepLength');
+    var stepLengthRange = ss.getRangeByName('StepLength');
     const stepLength = stepLengthRange.getValue();
     if (!stepLength) { throw new Error(`unable to find stepLength`) }
     retObj.stepLength = stepLength;
 
-    var stepPercentRange = SpreadsheetApp.getActiveSpreadsheet().getRangeByName('StepPercent');
+    var stepPercentRange = ss.getRangeByName('StepPercent');
     const stepPercent = stepPercentRange.getValue();
     if (!stepPercent) { throw new Error(`unable to find stepPercent`) }
     retObj.stepPercent = stepPercent;
 
-    var leaseTermMonsRange = SpreadsheetApp.getActiveSpreadsheet().getRangeByName('LeaseTermMons');
+    var leaseTermMonsRange = ss.getRangeByName('LeaseTermMons');
     const leaseTermMons = leaseTermMonsRange.getValue();
     if (!leaseTermMons) { throw new Error(`unable to find leaseTermMons`) }
     retObj.leaseTermMons = leaseTermMons;
@@ -307,9 +307,6 @@ function getStepValues() {
 }
 
 
-
-
-// Major changes on 210802
 /**
  * Purpose: populate sheet with data from current proposal
  *
@@ -426,43 +423,6 @@ function exportBR() {
   return true
 }
 
- /**
- * return an object describing what was passed
- * @param {*} ob the thing to analyze
- * @return {object} object information
- */
-function whatAmI (ob) {
-  try {
-    // test for an object
-    if (ob !== Object(ob)) {
-        return {
-          type:typeof ob,
-          value: ob,
-          length:typeof ob === 'string' ? ob.length : null 
-        } ;
-    }
-    else {
-      try {
-        var stringGuy = JSON.stringify(ob);
-      }
-      catch (err) {
-        stringGuy = '{"result":"unable to stringify"}';
-      }
-      return {
-        type:typeof ob ,
-        value : stringGuy,
-        name:ob.constructor ? ob.constructor.name : null,
-        nargs:ob.constructor ? ob.constructor.arity : null,
-        length:Array.isArray(ob) ? ob.length:null
-      };       
-    }
-  }
-  catch (err) {
-    return {
-      type:'unable to figure out what I am'
-    } ;
-  }
-  }
 
 /*************************UI Utilities************************ */
 
