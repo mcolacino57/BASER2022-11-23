@@ -117,6 +117,12 @@ class brokerC extends personC {
 
 }
 /***************** spreadsheet class ************************************ */
+/**
+ * Purpose: class for spreadsheet (files) and sheets within
+ *
+ * @param  {String} ssID - spreadsheet ID
+ * @param  {String} sName - sheet name 
+ */
 
 class ssC {
   constructor(ssID, sName) {
