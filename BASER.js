@@ -1,8 +1,7 @@
-
 /*exported onOpen,getItemResps,getAnswerWithMap , databaseNameG */
 
 /*global SpreadsheetApp , BetterLog , Logger , ssC  , getRSFfromPID , 
-getCommenceAndTermForCurrent , getCurrentProposal , databaseC */
+getCommenceAndTermForCurrent , getCurrentProposal , databaseC , readAllFromTable */
 
 // should come from the json
 var nominalFreeRentG = "6";
@@ -28,16 +27,34 @@ const lastRow = 4; // hardwired; note that if the header on the sheet changes th
 // eslint-disable-next-line no-unused-vars
 function onOpen(e) {
   var spreadsheet = SpreadsheetApp.getActive();
-  var menuItems = [
-    { name: 'Clear Sheet', functionName: 'clrSheet' },
-    { name: 'Create Initial Row', functionName: 'crInitRow' },
-    { name: 'Create Additional Row', functionName: 'crAddlRow' },
-    { name: 'Export Base Rent', functionName: 'exportBR' },
-    { name: 'Create Stepped Rent', functionName: 'crSteppedRentSchedule' }
+  var menuItems = [{
+      name: 'Clear Sheet',
+      functionName: 'clrSheet'
+    },
+    {
+      name: 'Create Initial Row',
+      functionName: 'crInitRow'
+    },
+    {
+      name: 'Create Additional Row',
+      functionName: 'crAddlRow'
+    },
+    {
+      name: 'Import Base Rent',
+      functionName: 'importBR'
+    },
+    {
+      name: 'Export Base Rent',
+      functionName: 'exportBR'
+    },
+    {
+      name: 'Create Stepped Rent',
+      functionName: 'crSteppedRentSchedule'
+    }
   ];
   spreadsheet.addMenu('Base Rent', menuItems);
   var ret = handleJSON(); // set globals from username.json (6.1)
-  ret = populateSheet();  // (6.2)
+  ret = populateSheet(); // (6.2)
   return ret
 }
 
@@ -55,7 +72,9 @@ function clrSheet() {
     // const sheetBR = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(baseRentSheetNameSG);
     const ssInst = new ssC(ssIDG, baseRentSheetNameSG);
     const lr = ssInst.sheet.getLastRow();
-    if (lr === ssInst.lastHeaderRow) { return true }
+    if (lr === ssInst.lastHeaderRow) {
+      return true
+    }
     ssInst.sheet.deleteRows(ssInst.lastHeaderRow + 1, lr - ssInst.lastHeaderRow);
     // also need to reset named ranges
 
@@ -116,8 +135,8 @@ function crInitRow() {
  * @return {Boolean} true/false
  */
 
-const rentPSFC = 4;  // hardwired rent column
-const rentAnnC = 5;  // hardwired annual expense column
+const rentPSFC = 4; // hardwired rent column
+const rentAnnC = 5; // hardwired annual expense column
 // eslint-disable-next-line no-unused-vars
 function crAddlRow() {
   var fS = "crAddlRow";
@@ -126,7 +145,7 @@ function crAddlRow() {
     const ss = ssInst.ss;
     const sheetBR = ssInst.sheet;
 
-    const startFromEndS = '=INDIRECT("R[-1]C[2]",FALSE)+1';  // hardwired difference
+    const startFromEndS = '=INDIRECT("R[-1]C[2]",FALSE)+1'; // hardwired difference
     crBaseRentRow(sheetBR, startFromEndS, monthsDefaultG, nominalRentG);
     const lr = sheetBR.getLastRow();
     sheetBR.getRange(lr, rentPSFC).setNumberFormat("$#,##0.00;$(#,##0.00)");
@@ -218,7 +237,7 @@ function crSteppedRent(stepObj) {
     // const ss = ssInst.ss;
     const sheetBR = ssInst.sheet;
     var rentLoc = stepObj.initialRent;
-    const offsetStart = '=INDIRECT("R[-1]C[2]",FALSE)+1';  // hardwired difference
+    const offsetStart = '=INDIRECT("R[-1]C[2]",FALSE)+1'; // hardwired difference
     const steps = Math.floor((stepObj.leaseTermMons) / 12);
     const remainderMons = stepObj.leaseTermMons % 12;
     const per = stepObj.stepPercent;
@@ -268,42 +287,55 @@ function getStepValues() {
     var ss = ssInst.ss;
     var dtlbRange = ss.getRangeByName('DTLB');
     var dtlb = dtlbRange.getValue();
-    if (!dtlb) { throw new Error(`unable to find dtlb`) }
+    if (!dtlb) {
+      throw new Error(`unable to find dtlb`)
+    }
     retObj.dtlb = dtlb;
 
     var dtlxRange = ss.getRangeByName('DTLX');
     const dtlx = dtlxRange.getValue();
-    if (!dtlx) { throw new Error(`unable to find dtlx`) }
+    if (!dtlx) {
+      throw new Error(`unable to find dtlx`)
+    }
     retObj.dtlx = dtlx;
 
     var initialRentRange = ss.getRangeByName('InitialRent');
     const initialRent = initialRentRange.getValue();
-    if (!initialRent) { throw new Error(`unable to find initialRent`) }
+    if (!initialRent) {
+      throw new Error(`unable to find initialRent`)
+    }
     retObj.initialRent = initialRent;
 
     var srsdRange = ss.getRangeByName('SteppedRentStartDate');
     const srsd = srsdRange.getValue();
-    if (!srsd) { throw new Error(`unable to find srsd`) }
+    if (!srsd) {
+      throw new Error(`unable to find srsd`)
+    }
     retObj.srsd = srsd;
 
     var stepLengthRange = ss.getRangeByName('StepLength');
     const stepLength = stepLengthRange.getValue();
-    if (!stepLength) { throw new Error(`unable to find stepLength`) }
+    if (!stepLength) {
+      throw new Error(`unable to find stepLength`)
+    }
     retObj.stepLength = stepLength;
 
     var stepPercentRange = ss.getRangeByName('StepPercent');
     const stepPercent = stepPercentRange.getValue();
-    if (!stepPercent) { throw new Error(`unable to find stepPercent`) }
+    if (!stepPercent) {
+      throw new Error(`unable to find stepPercent`)
+    }
     retObj.stepPercent = stepPercent;
 
     var leaseTermMonsRange = ss.getRangeByName('LeaseTermMons');
     const leaseTermMons = leaseTermMonsRange.getValue();
-    if (!leaseTermMons) { throw new Error(`unable to find leaseTermMons`) }
+    if (!leaseTermMons) {
+      throw new Error(`unable to find leaseTermMons`)
+    }
     retObj.leaseTermMons = leaseTermMons;
     Logger.log(`retobj is: ${JSON.stringify(retObj)}`);
     return retObj
-  }
-  catch (err) {
+  } catch (err) {
     var probS = `in ${fS} error: ${err}`;
     console.log(probS);
     throw new Error(probS)
@@ -322,11 +354,10 @@ function populateSheet() {
   var errS = "Can't populate sheet";
   try {
     const dbInst = new databaseC(databaseNameG);
-    var [propID, propName] = getCurrentProposal(dbInst);    // BASERSQL
-    setSheetProposal(propID,propName);
-    setSheetAssumptions(dbInst, propID); 
-  }
-  catch (err) {
+    var [propID, propName] = getCurrentProposal(dbInst); // BASERSQL
+    setSheetProposal(propID, propName);
+    setSheetAssumptions(dbInst, propID);
+  } catch (err) {
     // eslint-disable-next-line no-undef
     Logger.log(`In ${fS} ${err}`);
     // eslint-disable-next-line no-undef
@@ -337,35 +368,45 @@ function populateSheet() {
   return true
 }
 
-function setSheetProposal(propID,propName) {
+function setSheetProposal(propID, propName) {
   const fS = "setSheetProposal";
   try {
     const ssInst = new ssC(ssIDG, baseRentSheetNameSG);
     const sheetBR = ssInst.sheet;
     const pidRange = sheetBR.getRange('pid');
-    pidRange.setValues([[propID]]);
+    pidRange.setValues([
+      [propID]
+    ]);
     const pnameRange = sheetBR.getRange('propName');
-    pnameRange.setValues([[propName]]);
+    pnameRange.setValues([
+      [propName]
+    ]);
   } catch (err) {
     var probS = `-> ${fS} error ${err}`;
     throw new Error(probS);
   }
 }
 
-function setSheetAssumptions(dbInst,propID){
+function setSheetAssumptions(dbInst, propID) {
   const fS = "setSheetAssumptions";
   try {
     const ssInst = new ssC(ssIDG, 'Assumptions');
     const ssAssum = ssInst.sheet;
     const rsf = getRSFfromPID(dbInst, propID);
     const rsfRange = ssAssum.getRange('RSF');
-    rsfRange.setValues([[rsf]]);
+    rsfRange.setValues([
+      [rsf]
+    ]);
     var [commDate, leaseTerm] = getCommenceAndTermForCurrent(dbInst, propID); // BASERSQL
     const commDateRange = ssAssum.getRange('InitialDate');
-    commDateRange.setValues([[commDate]]);
+    commDateRange.setValues([
+      [commDate]
+    ]);
     const leaseTermRange = ssAssum.getRange('LeaseTermMons');
-    leaseTermRange.setValues([[leaseTerm]]);
-  
+    leaseTermRange.setValues([
+      [leaseTerm]
+    ]);
+
   } catch (err) {
     var probS = `-> ${fS} error ${err}`;
     throw new Error(probS);
@@ -396,12 +437,15 @@ function exportBR() {
       if (updateYN) {
         // eslint-disable-next-line no-undef
         var ret = deleteFromTable(dbInst, "base_rent", cellPID);
-        if (!ret) { throw new Error('cant delete from base_rent table') }
+        if (!ret) {
+          throw new Error('cant delete from base_rent table')
+        }
+      } else {
+        return true
       }
-      else { return true }
     }
     var lrS = sheetBR.getLastRow().toString(); // last row string
-    var brRangeS = "A5:E" + lrS;  // set range from A to E column; fix if columns change
+    var brRangeS = "A5:E" + lrS; // set range from A to E column; fix if columns change
     // Get range with base rent
     var brRange = sheetBR.getRange(brRangeS).getValues();
     // Put that range into a set of lists with dates formatted properly for input to SQL
@@ -412,17 +456,18 @@ function exportBR() {
       var formattedEndDate = Utilities.formatDate(new Date(br[2]), "GMT-5", 'yyyy-MM-dd');
       // Note this should be refactored to a structure or probably a class
       return [
-        cellPID,  // Proposal id
+        cellPID, // Proposal id
         formattedStartDate,
         formattedEndDate,
-        br[1],  // Months between dates
+        br[1], // Months between dates
         userEmail, // Created by
-        br[3],  // base rent pSF
+        br[3], // base rent pSF
         // eslint-disable-next-line no-undef
         Utilities.formatDate(new Date(), "GMT-5", "yyyy-MM-dd"), // created when (today)
         userEmail, // Modified by
         // eslint-disable-next-line no-undef
-        Utilities.formatDate(new Date(), "GMT-5", "yyyy-MM-dd")] // modified when
+        Utilities.formatDate(new Date(), "GMT-5", "yyyy-MM-dd")
+      ] // modified when
     });
     // Iterate over variable writing rows to the dbInst
     adjBR.forEach(record => {
@@ -441,6 +486,44 @@ function exportBR() {
   return true
 }
 
+/**
+ * Purpose: use the current proposal to get base rent records, then
+ * populate the sheet with that data..first clear the sheet, asking
+ * the user if that's what is intended
+ *
+ * @param  {String} param_name - param
+ * @param  {itemReponse[]} param_name - an array of responses 
+ * @return {String} retS - return value
+ */
+// eslint-disable-next-line no-unused-vars
+function importBR() {
+  try {
+    const dbInst = new databaseC(databaseNameG);
+    // eslint-disable-next-line no-undef
+    var sheetBR = SpreadsheetApp.getActiveSpreadsheet().getSheetByName(baseRentSheetNameSG);
+    var pid = sheetBR.getRange("pid").getValue(); // get proposal id from sheet
+    clrSheet();
+    // put cursor in the correct place
+
+
+    // get all the records from the database for this proposal id
+    var recA = readAllFromTable(dbInst, "base_rent", false);
+    if (recA.length === 0) {
+      throw new Error(`no rows for proposal id ${pid}`)
+    }
+    for (var i = 0; i < recA.length; i++){
+      Logger.log(recA[i])
+    }
+    
+  } catch (err) {
+    // eslint-disable-next-line no-undef
+    Logger.log(`In ${fS}: ${err}`);
+    // eslint-disable-next-line no-undef
+    SpreadsheetApp.getUi() // Or DocumentApp or FormApp.
+      .alert(`${err}`);
+  }
+
+}
 
 /*************************UI Utilities************************ */
 
@@ -482,7 +565,8 @@ function duplicateBRAlert() {
  * @return {String} retS - return value
  */
 function handleJSON() {
-  var fS = "handleJSON", probS;
+  var fS = "handleJSON",
+    probS;
   var userPrefixS = userEmail.split('@')[0];
   var fileName = userPrefixS + ".json";
   try {
@@ -494,10 +578,18 @@ function handleJSON() {
       var content = file.getBlob().getDataAsString();
       var json = JSON.parse(content);
     }
-    if (json.nominalFreeRent) { nominalFreeRentG = json.nominalFreeRent }
-    if (json.nominalRent) { nominalRentG = json.nominalRent }
-    if (json.nominalTerm) { nominalTermG = json.nominalTerm }
-    if (json.monthsDefault) { monthsDefaultG = json.monthsDefault }
+    if (json.nominalFreeRent) {
+      nominalFreeRentG = json.nominalFreeRent
+    }
+    if (json.nominalRent) {
+      nominalRentG = json.nominalRent
+    }
+    if (json.nominalTerm) {
+      nominalTermG = json.nominalTerm
+    }
+    if (json.monthsDefault) {
+      monthsDefaultG = json.monthsDefault
+    }
   } catch (err) {
     probS = `In ${fS}: ${err}`
     console.log(probS);
@@ -521,7 +613,9 @@ function getAnswerWithMap(question, itemResponses) {
     return response.getItem().getTitle();
   });
   var pos = responses.indexOf(question);
-  if (pos == -1) { return "Not Found" }
+  if (pos == -1) {
+    return "Not Found"
+  }
   var answer = itemResponses[pos].getResponse();
   return answer
 }

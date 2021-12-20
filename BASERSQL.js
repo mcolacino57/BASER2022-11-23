@@ -90,6 +90,79 @@ function readFromTable(dbInst, tableNameS, colS, searchS, jsonyn = true) {
 
 }
 
+
+/**
+ * Purpose: read row(s) up to maxRows from database using dbInst for connection
+ *
+ * @param  {object} dbInst - instance of database class
+ * @param {string} tableNameS - table to read
+ 
+ * @return {String} retS - return value
+ */
+
+ const logReadAllFromTable = false;
+ // eslint-disable-next-line no-unused-vars
+ function readAllFromTable(dbInst, tableNameS, jsonyn = true) {
+   var fS = "readAllFromTable";
+   var logLoc = logReadAllFromTable;
+   /*********connect to database ************************************ */
+   try {
+     var locConn = dbInst.getconn(); // get connection from the instance
+     logLoc ? console.log(`In ${fS} ${locConn.toString()}`) : true;
+ 
+     var stmt = locConn.createStatement();
+     stmt.setMaxRows(maxRows);
+   } catch (err) {
+     const probS = `In ${fS} issue getting connection or creating statement: ${err}`;
+     Logger.log(probS);
+     return false
+   }
+   /******************extract rows that meet select criteria ********* */
+   var qryS = `SELECT * FROM ${tableNameS};`;
+   try {
+     var results = stmt.executeQuery(qryS);
+     var numCols = results.getMetaData().getColumnCount();
+   } catch (err) {
+     const probS = `In ${fS} problem with executing query : ${err}`;
+     Logger.log(probS);
+     return false
+   }
+   var dataA = [];
+   while (results.next()) {  // the resultSet cursor moves forward with next; ends with false when at end
+     var recA = [];
+     for (var col = 0; col < numCols; col++) {
+       recA.push(results.getString(col + 1));  // create inner array(s)
+     }
+     dataA.push(recA); // push inner array into outside array
+   }
+   logLoc ? console.log(`In ${fS} ${dataA}`) : true;
+ 
+   /**************************now get the header names ************************** */
+   try {
+     var colA = dbInst.getcolumns(tableNameS);
+   } catch (err) {
+     var probS = `In ${fS} problem with executing query : ${err}`
+     Logger.log(probS);
+     return probS
+   }
+   var rowA = splitRangesToObjects(colA, dataA); // utility fn in objUtil.gs
+   logLoc ? console.log(`In ${fS} ${rowA}`) : true;
+   results.close();
+   stmt.close();
+   var retA = [];
+   for (var j in rowA) {
+     var retObj = new Object();
+     retObj["fields"] = rowA[j];
+     retA.push(retObj);
+   }
+   if (jsonyn) {
+     return retA
+   }
+   else {
+     return rowA
+   }
+ }
+
 /**
  * Purpose: get a list of ProposalNames from proposals table
  *
@@ -173,6 +246,7 @@ function writeToTable(dbInst, tableNameS, recordA) {
  * @param  {number} propID - proposal identifier integer
  * @return {boolean} retS - return value
  */
+// eslint-disable-next-line no-unused-vars
 function matchingBRProposalID(dbInst, propID) {
   var fS = "matchingBRProposalID";
   try {
@@ -219,6 +293,7 @@ function getProposalNamesAndIDs(dbInst, userS = "mcolacino@squarefoot.com") {
 
 
 
+// eslint-disable-next-line no-unused-vars
 function getRSFfromPID(dbInst, pid) {
   var fS = "getRSFfromPID";
   try {
@@ -337,46 +412,6 @@ function rangeToObjects(range) {
 /**********************Test Functions********************** */
 
 
-function testMatchingBRProposalID() {
-  var dbInst = new databaseC("applesmysql");
-  var ret = matchingBRProposalID(dbInst, 1);
-  return ret
-
-}
-
-function testReadFromClauses() {
-  var dbInst = new databaseC("applesmysql");
-  var tableNameS = "clauses";
-  var colNameS = "Section";
-  var searchS = "Electric";
-  var jsonyn = false;
-  var retA = readFromTable(dbInst, tableNameS, colNameS, searchS, jsonyn); // all rows in section Electric
-  // var records = retA.map(function (record) {
-  //   return record;
-  // });
-  Logger.log(retA);
-  // Logger.log(records[0].clausekey);
-  dbInst.getconn().close;
-}
-
-function testReadFromProposals() {
-  var dbInst = new databaseC("applesmysql");
-  var tableNameS = "proposals";
-  var colNameS = "CreatedBy";
-  // eslint-disable-next-line no-undef
-  var searchS = userEmail;
-  var jsonyn = false;
-  var retA = readFromTable(dbInst, tableNameS, colNameS, searchS, jsonyn); // all rows in section Electric
-  Logger.log(retA);
-  dbInst.getconn().close;
-}
-
-function testgetRSFfromPID(pid) {
-  const dbInst = new databaseC("applesmysql");
-  var rsf = getRSFfromPID(dbInst, pid);
-  Logger.log(rsf);
-  return rsf
-}
 
 /**
  * Purpose: get current proposal from db

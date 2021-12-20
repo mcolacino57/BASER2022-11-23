@@ -6,7 +6,7 @@ testPrintTitlesAndIDs,
 
 /*global  databaseC  , exportBR  , handleJSON
 UnitTestingApp , databaseNameG , nominalFreeRentG , nominalFreeRentG , nominalRentG , nominalTermG , nominalTermG 
-monthsDefaultG , populateSheet */
+monthsDefaultG , populateSheet , matchingBRProposalID , readFromTable , Logger, getRSFfromPID */
 // Need to add test for writing base rents to the database!
 
 // eslint-disable-next-line no-unused-vars
@@ -48,4 +48,34 @@ function runTests() {
     test.assert(populateSheet(), `populateSheet`);
   }
   dbInst.closeconn();
+}
+
+
+// eslint-disable-next-line no-unused-vars
+function testMatchingBRProposalID() {
+  var dbInst = new databaseC("applesmysql");
+  var ret = matchingBRProposalID(dbInst, 1);
+  return ret
+
+}
+
+
+// eslint-disable-next-line no-unused-vars
+function testReadFromProposals() {
+  var dbInst = new databaseC("applesmysql");
+  var tableNameS = "proposals";
+  var colNameS = "CreatedBy";
+  // eslint-disable-next-line no-undef
+  var searchS = userEmail;
+  var jsonyn = false;
+  var retA = readFromTable(dbInst, tableNameS, colNameS, searchS, jsonyn); // all rows in section Electric
+  Logger.log(retA);
+  dbInst.getconn().close;
+}
+
+function testgetRSFfromPID(pid) {
+  const dbInst = new databaseC("applesmysql");
+  var rsf = getRSFfromPID(dbInst, pid);
+  Logger.log(rsf);
+  return rsf
 }
