@@ -1,7 +1,8 @@
 /*exported onOpen,getItemResps,getAnswerWithMap , databaseNameG */
 
 /*global SpreadsheetApp , BetterLog , Logger , ssC  , getRSFfromPID , 
-getCommenceAndTermForCurrent , getCurrentProposal , databaseC , readAllFromTable */
+getCommenceAndTermForCurrent , getCurrentProposal , databaseC , readAllFromTable , 
+databaseNameG , userEmail */
 
 // should come from the json
 var nominalFreeRentG = "6";
@@ -15,12 +16,12 @@ const baseRentSheetNameSG = "Base Rent Schedule";
 
 // eslint-disable-next-line no-undef
 // const userEmail = Session.getActiveUser().getEmail();
-const userEmail = "mcolacino@squarefoot.com";
+// const userEmail = "mcolacino@squarefoot.com";
 
 const ssLogID = '1l3EYsH7UJFUfuFORFF7GNxPM2jwLZlSh_0xSgSDTOPo';
 // eslint-disable-next-line no-global-assign
 Logger = BetterLog.useSpreadsheet(ssLogID);
-const databaseNameG = "applesmysql";
+// const databaseNameG = "applesmysql";
 // last row with header; don't delete this or anything above
 const lastRow = 4; // hardwired; note that if the header on the sheet changes this must also
 
