@@ -102,15 +102,36 @@ class proposalC {
 // current proposal
 class propListC {
   constructor(dbInst) {
+    var pNA = [];
     this.propNIDA = getProposalNamesAndIDs(dbInst, userEmail);
     for (var i = 0; i < this.propNIDA.length; i++) {
       if (this.propNIDA[i][2] == 1) {
-        this.currID = this.propNIDA[i][1]
+        this.currID = this.propNIDA[i][1];
+        this.currName = this.propNIDA[i][0];
       }
+      pNA.push(this.propNIDA[i][0])
     }
+    this.propNA = pNA.sort();
   }
+
+  updatePropNIDA(dbInst) {
+    this.propNIDA = getProposalNamesAndIDs(dbInst, userEmail);
+    var pNA2 = [];
+    for (var i = 0; i < this.propNIDA.length; i++) {
+      if (this.propNIDA[i][2] == 1) {
+        this.currID = this.propNIDA[i][1]
+        this.currName = this.propNIDA[i][0];
+      }
+      pNA2.push(this.propNIDA[i][0])
+    }
+    this.propNA = pNA2.sort();
+  }
+
   getPropNIDA() {
     return this.propNIDA
+  }
+  getPropNA() {
+    return this.propNA
   }
   // for testing purposes
   getIndexed(idx) {
@@ -135,7 +156,7 @@ class propListC {
     return this.propNIDA
   }
   setCurr(id) {
-    this.currID = id
+    this.currID = id;
   }
   getCurr() {
     return this.currID
