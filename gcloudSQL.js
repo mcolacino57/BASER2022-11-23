@@ -1,6 +1,6 @@
 /**
  * Purpose: read row(s) up to maxRows from database using dbInst for connection
- *
+ * 
  * @param  {object} dbInst - instance of database class
  * @param {string} tableNameS - table to read
  * @param {string} colS - column to select on
@@ -82,8 +82,8 @@ function readFromTable(dbInst, tableNameS, colS, searchS, jsonyn = true) {
  * @param {String} colS - column to select on
  * @param {String} inListS - string in IN SQL format
  * @return {String} retS - return value
- *
- * return value is in the form:
+ * 
+ * return value is in the form: 
  */
 
 const logReadInListFromTable = false;
@@ -120,7 +120,7 @@ function readInListFromTable(dbInst, tableNameS, colS, inListS) {
       recA.push(results.getString(col + 1));  // create inner array(s)
     }
     dataA.push(recA); // push inner array into outside array
-}
+  }
   // This finishes with an nxm matrix with #rows = length of dataA and #cols = numCols
   logLoc ? console.log(dataA) : true;
 
@@ -154,73 +154,73 @@ function readInListFromTable(dbInst, tableNameS, colS, inListS) {
  *
  * @param  {object} dbInst - instance of database class
  * @param {string} tableNameS - table to read
-
+ 
  * @return {String} retS - return value
  */
 
- const logReadAllFromTable = false;
+const logReadAllFromTable = false;
 
- function readAllFromTable(dbInst, tableNameS, jsonyn = true) {
-   var fS = "readAllFromTable";
-   var logLoc = logReadAllFromTable;
-   /*********connect to database ************************************ */
-   try {
-     var locConn = dbInst.getconn(); // get connection from the instance
-     logLoc ? console.log(`In ${fS} ${locConn.toString()}`) : true;
+function readAllFromTable(dbInst, tableNameS, jsonyn = true) {
+  var fS = "readAllFromTable";
+  var logLoc = logReadAllFromTable;
+  /*********connect to database ************************************ */
+  try {
+    var locConn = dbInst.getconn(); // get connection from the instance
+    logLoc ? console.log(`In ${fS} ${locConn.toString()}`) : true;
 
-     var stmt = locConn.createStatement();
-     stmt.setMaxRows(maxRows);
-   } catch (err) {
-     const probS = `In ${fS} issue getting connection or creating statement: ${err}`;
-     Logger.log(probS);
-     return false
-   }
-   /******************extract rows that meet select criteria ********* */
-   var qryS = `SELECT * FROM ${tableNameS};`;
-   try {
-     var results = stmt.executeQuery(qryS);
-     var numCols = results.getMetaData().getColumnCount();
-   } catch (err) {
-     const probS = `In ${fS} problem with executing query : ${err}`;
-     Logger.log(probS);
-     return false
-   }
-   var dataA = [];
+    var stmt = locConn.createStatement();
+    stmt.setMaxRows(maxRows);
+  } catch (err) {
+    const probS = `In ${fS} issue getting connection or creating statement: ${err}`;
+    Logger.log(probS);
+    return false
+  }
+  /******************extract rows that meet select criteria ********* */
+  var qryS = `SELECT * FROM ${tableNameS};`;
+  try {
+    var results = stmt.executeQuery(qryS);
+    var numCols = results.getMetaData().getColumnCount();
+  } catch (err) {
+    const probS = `In ${fS} problem with executing query : ${err}`;
+    Logger.log(probS);
+    return false
+  }
+  var dataA = [];
   while (results.next()) { // the resultSet cursor moves forward with next; ends with false when at end
-     var recA = [];
-     for (var col = 0; col < numCols; col++) {
+    var recA = [];
+    for (var col = 0; col < numCols; col++) {
       recA.push(results.getString(col + 1)); // create inner array(s)
-     }
-     dataA.push(recA); // push inner array into outside array
-   }
-   logLoc ? console.log(`In ${fS} ${dataA}`) : true;
+    }
+    dataA.push(recA); // push inner array into outside array
+  }
+  logLoc ? console.log(`In ${fS} ${dataA}`) : true;
 
-   /**************************now get the header names ************************** */
-   try {
-     var colA = dbInst.getcolumns(tableNameS);
-   } catch (err) {
-     var probS = `In ${fS} problem with executing query : ${err}`
-     Logger.log(probS);
-     return probS
-   }
-   var rowA = splitRangesToObjects(colA, dataA); // utility fn in objUtil.gs
-   logLoc ? console.log(`In ${fS} ${rowA}`) : true;
-   results.close();
-   stmt.close();
-   var retA = [];
-   for (var j in rowA) {
-     var retObj = new Object();
-     retObj["fields"] = rowA[j];
-     retA.push(retObj);
-   }
-   if (jsonyn) {
-     return retA
+  /**************************now get the header names ************************** */
+  try {
+    var colA = dbInst.getcolumns(tableNameS);
+  } catch (err) {
+    var probS = `In ${fS} problem with executing query : ${err}`
+    Logger.log(probS);
+    return probS
+  }
+  var rowA = splitRangesToObjects(colA, dataA); // utility fn in objUtil.gs
+  logLoc ? console.log(`In ${fS} ${rowA}`) : true;
+  results.close();
+  stmt.close();
+  var retA = [];
+  for (var j in rowA) {
+    var retObj = new Object();
+    retObj["fields"] = rowA[j];
+    retA.push(retObj);
+  }
+  if (jsonyn) {
+    return retA
   } else {
     return rowA
   }
 }
 
-/*
+/* 
   * Purpose: get an array of ProposalNames and IDs from proposals table
   *         based upon the name of the user
   *
@@ -253,7 +253,7 @@ function getProposalNamesAndIDs(dbInst, userS = userEmail) {
  * Purpose: Join spaces and buildings (view?) to get SpaceID / Floor / Suite / Square Footage
  *
  * @param  {String} param_name - param
- * @param  {itemReponse[]} param_name - an array of responses
+ * @param  {itemReponse[]} param_name - an array of responses 
  * @return {String} retS - return value
  */
 const logGetAddressSuitFloorSF = false;
@@ -283,7 +283,7 @@ function getAddressSuiteFloorSF(userS = userEmail) {
  * Purpose: Join spaces and buildings (view?) to get SpaceID / Floor / Suite / Square Footage
  *
  * @param  {String} param_name - param
- * @param  {itemReponse[]} param_name - an array of responses
+ * @param  {itemReponse[]} param_name - an array of responses 
  * @return {String} retS - return value
  * Modified: 210724 4:06
  */
@@ -291,7 +291,7 @@ const logGetSpaceDisplay = false;
 // eslint-disable-next-line no-unused-vars
 function getSpaceDisplay(userS = userEmail) {
   const dbInst = dbInstG;
-  var tableNameS = "survey_spaces"; //
+  var tableNameS = "survey_spaces"; // 
   var jsonyn = true;
   var ret = readAllFromTable(dbInst, tableNameS, jsonyn);
   var spaceA = ret.map(record => {
@@ -306,7 +306,7 @@ function getSpaceDisplay(userS = userEmail) {
   return spaceA
 }
 
-/**
+/** 
   * Purpose: Get data from the proposal table
   *         based upon the name of the user
   *
@@ -327,9 +327,9 @@ function getProposalData(dbInst, userS = userEmail) {
   })
   logGetProposalData ? console.log(propDataA) : true;
   return propDataA
-   }
+}
 
-/**
+/** 
   * Purpose: Get data from the proposal table
   *         based upon a proposal name, and the name of the user
   * @param  {String} proposalNameS - a name of a proposal
@@ -363,13 +363,13 @@ function getNamedProposalData(dbInst, proposalNameS, userS = userEmail) {
     return pObj
   } else {
     throw new Error(`${proposalNameS} has ${propDataA.length} records.`);
-   }
- }
+  }
+}
 
 /**
  * Purpose: get a list of ProposalNames from proposals table
  *
- * @param  {dbInst} param_name - an array of responses
+ * @param  {dbInst} param_name - an array of responses 
  * @param  {String} userS - optional user string (email)
  * @return {String} retS - return value
  */
@@ -387,44 +387,44 @@ function getProposalNames(dbInst, userS = userEmail) {
 }
 
 /**
- * Purpose: Takes the proposal instance and sets the proposal to current,
+ * Purpose: Takes the proposal instance and sets the proposal to current, 
  * toggling all other proposals (meaning ALL) to false first
- *
+ * 
  * @param  {Object} dbInst - instance of databaseC
- * @param  {Object} propInst - instance of proposalC
  * @return {String} retS - return value
  */
-/* UPDATE [LOW_PRIORITY] [IGNORE] table_name
-SET
+/* UPDATE [LOW_PRIORITY] [IGNORE] table_name 
+SET 
     column_name1 = expr1,
     column_name2 = expr2,
     ...
 [WHERE
     condition];*/
 
-    const disp_SetProposalCurrent = false;
-    function setProposalCurrent(dbInst, pid) {
-      var fS = "setProposalCurrent";
-      try {
-        // var pid = propInst.getID();
-        var locConn = dbInst.getconn(); // get connection from the instance
+const disp_SetProposalCurrent = false;
+function setProposalCurrent(pid) {
+  const dbInst= dbInstG;
+  var fS = "setProposalCurrent";
+  try {
+    // var pid = propInst.getID();
+    var locConn = dbInst.getconn(); // get connection from the instance
 
-        // first set all proposal current -> false
-        var qryS1 = `UPDATE proposals SET proposals.current = false;`;
-        var stmt = locConn.prepareStatement(qryS1);
-        stmt.execute();
-        var qryS2 = `UPDATE proposals SET proposals.current = true WHERE proposals.ProposalID= '${pid}';`;
-        disp_SetProposalCurrent ? Logger.log(`in ${fS} qryS1 is ${qryS1} qryS2 is ${qryS2}`) : true;
-        stmt = locConn.prepareStatement(qryS2);
-        stmt.execute();
-      } catch (err) {
-        const probS = `In ${fS}: ${err}`;
-        Logger.log(probS);
-        return false
-      }
-      return true
+    // first set all proposal current -> false
+    var qryS1 = `UPDATE proposals SET proposals.current = false;`;
+    var stmt = locConn.prepareStatement(qryS1);
+    stmt.execute();
+    var qryS2 = `UPDATE proposals SET proposals.current = true WHERE proposals.ProposalID= '${pid}';`;
+    disp_SetProposalCurrent ? Logger.log(`in ${fS} qryS1 is ${qryS1} qryS2 is ${qryS2}`) : true;
+    stmt = locConn.prepareStatement(qryS2);
+    stmt.execute();
+  } catch (err) {
+    const probS = `In ${fS}: ${err}`;
+    Logger.log(probS);
+    return false
+  }
+  return true
 
-    }
+}
 
 /**
  * Purpose: get current proposal from db
@@ -449,7 +449,7 @@ SET
       pid = results.getString("ProposalID");
       pN = results.getString("ProposalName");
       cntr++;
-      // column can either be by number or by string
+      // column can either be by number or by string 
     }
     if (cntr === 0 || pid === "") {
       dbInst.getconn().close;
@@ -478,7 +478,7 @@ SET
  * @param  {string} propID - proposal id
  * @return {String} retS - return S/M/L
  */
- function getPropSize(dbInst, propID, userS) {
+function getPropSize(dbInst, propID, userS) {
   var fS = "getPropSize";
   try {
     var locConn = dbInst.getconn();
@@ -494,7 +494,7 @@ SET
     return false
   }
   return value
- }
+}
 
 /**
  * Purpose
@@ -503,7 +503,7 @@ SET
  * @param  {number} propID - proposal identifier integer
  * @return {boolean} retS - return value
  */
- function matchingBRProposalID(dbInst, propID) {
+function matchingBRProposalID(dbInst, propID) {
   var fS = "matchingBRProposalID";
   try {
     var locConn = dbInst.getconn(); // get connection from the instance
@@ -536,7 +536,7 @@ SET
  *
  * @params  {array}    headers  [key, key, ...]
  * @params  {array}    values    [[value, value, ...], ...]
- * @returns {array}    [{key:value, ...}, ...]
+ * @returns {array}    [{key:value, ...}, ...]  
  */
 function splitRangesToObjects(headers, values) {
   var rowObjects = [];
@@ -553,13 +553,13 @@ function splitRangesToObjects(headers, values) {
 
 /**
  * Removes special characters from a string
- * Commonly know as a camelCase,
+ * Commonly know as a camelCase, 
  * Examples:
  *   "First Name" -> "firstName"
  *   "Market Cap (millions) -> "marketCapMillions
  *   "1 number at the beginning is ignored" -> "numberAtTheBeginningIsIgnored"
  * @params  {string}  header   string
- * @returns {string}           camelCase
+ * @returns {string}           camelCase 
  */
 function camelString(header) {
   var key = "";
@@ -600,10 +600,10 @@ function isDigit_(char) {
  * @author James Ferriera
  * @documentation http://goo.gl/JdEHW
  *
- * Changes an object like e.parameter into a 2D array useful in
+ * Changes an object like e.parameter into a 2D array useful in 
  * writing to a spreadsheet with using the .setValues method
  *
- * @param   {Array}   headers    [header, header, ...]
+ * @param   {Array}   headers    [header, header, ...] 
  * @param   {Array}   objValues  [{key:value, ...}, ...]
  * @returns {Array}              [[value, value, ...], ...]
  */
@@ -622,12 +622,12 @@ function objectToArray(headers, objValues) {
 
 
 /**
- * Changes a range array often returned from .getValues() into an
+ * Changes a range array often returned from .getValues() into an 
  * array of objects with key value pairs.
  * The first element in the array is used as the keys (headers)
  *
- * @param   {Array}   range   [[key, key, ...],[value, value, ...]]
- * @returns {Array}           [{key:value, ...}, ...]
+ * @param   {Array}   range   [[key, key, ...],[value, value, ...]] 
+ * @returns {Array}           [{key:value, ...}, ...] 
  */
 function rangeToObjects(range) {
   var headers = range[0];
@@ -646,13 +646,13 @@ function rangeToObjects(range) {
 
 /**
  * Removes special characters from strings in an array
- * Commonly know as a camelCase,
+ * Commonly know as a camelCase, 
  * Examples:
  *   "First Name" -> "firstName"
  *   "Market Cap (millions) -> "marketCapMillions
  *   "1 number at the beginning is ignored" -> "numberAtTheBeginningIsIgnored"
  * @params  {array} headers   [string, string, ...]
- * @returns {array}           camelCase
+ * @returns {array}           camelCase 
  */
  function camelArray(headers) {
   var keys = [];
