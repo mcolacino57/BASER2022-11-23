@@ -198,10 +198,23 @@ class responseC {
 
 class databaseC {
   constructor(dbS) {
-    this.db = dbS; // name of the database
-    this.connectionName = 'fleet-breaker-311114:us-central1:applesmysql';
     this.root = 'root';
     this.rootPwd = 'lew_FEEB@trit3auch';
+    this.db = dbS; // name of the database
+
+     if (dbS == "applesmysql_loc") {
+      let server = '98.7.126.220'; // this was gateway address as of 2022-11-21
+      let port = '3306'; // port forwarded to 192.168.4.234, ip of macbook on 2022-11-21
+      let pwd = this.rootPwd;
+      let user = 'outroot';
+
+      var url = "jdbc:mysql://" + server + ":" + port + "/" + dbS;
+      console.log(url)
+      this.conn = Jdbc.getConnection(url, user, pwd);
+      return;
+    }
+
+    this.connectionName = 'fleet-breaker-311114:us-central1:applesmysql';
     this.user = 'applesU1';
     this.userPwd = 'DIT6rest1paft!skux';
     this.instanceUrl = 'jdbc:google:mysql://' + this.connectionName;
@@ -209,8 +222,9 @@ class databaseC {
     this.connectParam = `dbUrl: ${this.dbUrl} user: ${this.user} and ${this.userPwd}`;
     // console.log("Inside databaseC " + this.connectParam);
     this.conn = Jdbc.getCloudSqlConnection(this.dbUrl, this.user, this.userPwd);
-    this.colA = [];
+
   }
+
   getdbUrl() {
     return this.dbUrl;
   }
@@ -221,18 +235,18 @@ class databaseC {
     return this.conn
   }
   getcolumns(tableNameS) {
-    var qryS = `SHOW COLUMNS FROM ${tableNameS};`
     try {
+      var qryS = `SHOW COLUMNS FROM ${tableNameS};`
+      var colA = [];
       var stmt = this.conn.createStatement();
       var cols = stmt.executeQuery(qryS);
-      this.colA = [];
       while (cols.next()) {
-        this.colA.push(cols.getString(1));
+        colA.push(cols.getString(1));
       }
     } catch (err) {
-      console.log(`In method getcolumns problem with executing query : ${err}`);
+      Logger.log(`In method getcolumns problem with executing query : ${err}`);
     }
-    return (this.colA)
+    return (colA)
   }
   closeconn() {
     if (this.conn != null) this.conn.close();
