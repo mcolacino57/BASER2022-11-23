@@ -1,15 +1,13 @@
-/*exported 
-testExamineForm,
-testPrintTitlesAndIDs, 
-,runTests
- */
 
-/*global  databaseC  , exportBR  , handleJSON
-UnitTestingApp , databaseNameG , nominalFreeRentG , nominalFreeRentG , nominalRentG , nominalTermG , nominalTermG 
-monthsDefaultG , populateSheet , matchingBRProposalID , readFromTable , Logger, getRSFfromPID */
-// Need to add test for writing base rents to the database!
 
-// eslint-disable-next-line no-unused-vars
+function testgetCommenceAndTermForCurrent(){
+  const dbInst = new databaseC("applesmysql");
+  // eslint-disable-next-line no-undef
+  var [propID,propName] = getCurrentProposal(dbInst);
+  var [cd,lt]=getCommenceAndTermForCurrent(dbInst,propID);
+  console.log(`${cd} and ${lt} for ${propName}`);
+}
+
 function testExportBR() {
   // eslint-disable-next-line no-undef
   var dbInst = new databaseC();
