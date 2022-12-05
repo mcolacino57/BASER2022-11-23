@@ -80,12 +80,10 @@
     catchErr(callback, errorMessage, message) {
       if(!_enabled.get(this)) return;
       if(this.isInGas !== this.runningInGas) return;
-      let error;
       let isCaught = false;
       try {
         callback();
       } catch (err) {
-        error = err;
         isCaught = new RegExp(errorMessage).test(err);
       } finally {
         this.assert(isCaught, message);
