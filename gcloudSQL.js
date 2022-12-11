@@ -1,3 +1,5 @@
+/* eslint-disable no-unused-vars */
+/* eslint-disable no-undef */
 /**
  * Purpose: read row(s) up to maxRows from database using dbInst for connection
  * 
@@ -664,3 +666,13 @@ function rangeToObjects(range) {
   }
   return keys;
 }
+
+
+/**
+ * Purpose Takes the current location and sets clause version to current or ignore
+ * based on whether the clause is either the same as the current location, or generic
+ *
+ * @param  {String} param_name - param
+ * @param  {itemReponse[]} param_name - an array of responses 
+ * @return {String} retS - return value
+ */
