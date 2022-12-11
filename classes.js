@@ -1,10 +1,9 @@
+/* eslint-disable no-undef */
 /* eslint-disable no-unused-vars */
-/*global Logger, getPropSize,userEmail,DriveApp,DocumentApp,getItemResps,getAnswerWithMap,Jdbc,Utilities ,
-getProposalNamesAndIDs , getPropSize , getPropLocation , createPropDetailA ,
-getPropStructFromName , matchProposalSizeWithClause */
-/*exported ckStringC, proposalC,brokerC,docC,responseC,databaseC, propListC   */
-
-
+// Class for clause key
+// Constructor takes a clause key (ck) along with size, location, and version
+// and creates local clauseBody and replStruct and section
+// getClauseInfo is in this file
 class ckC {
   constructor(dbInst, ck, proposalSize, proposalLocation, version) {
     [this.clauseBody, this.section] = getClauseInfo(dbInst, ck, proposalSize, proposalLocation, version);
@@ -51,16 +50,18 @@ class ckStringC {
 
 }
 
+// Class for proposals
+// Constructor takes a proposal name and gets a proposal structure from getPropStructFromName
+// which is in the library in getPropInfo.gs; the structure looks like
+//   propStruct.ProposalSize = results.getString("ProposalSize");
+//   propStruct.ProposalID = results.getString("ProposalID");
+//   propStruct.ProposalLocation = results.getString("ProposalLocation");
+//   propStruct.TenantName = results.getString("TenantName");
+//   propStruct.SpaceIdentity = results.getString("space_identity");
+//   propStruct.PropDateS = todayS;
+
 class proposalC {
   constructor(dbInst, propName) {
-    // this.allPropsA = getProposalNamesAndIDs(dbInst, userEmail);
-    // this.prop = this.allPropsA.filter((p) => {
-    //   return p[0] == propName // returns array with propName and propID
-    // })[0];
-    // this.name = this.prop[0];
-    // this.id = this.prop[1];
-    // this.size = getPropSize(dbInst, this.id, userEmail);
-    // this.location = getPropLocation(dbInst, this.id);
     var propStruct = getPropStructFromName(dbInst, propName);
     if (propStruct) {
       this.name = propName;
@@ -290,7 +291,7 @@ class ssC {
     this.sheet = this.ss.getSheetByName(newSname);
     this.sheet.activate();
   }
-  
+
 }
 
 /***************** doc class ************************************ */
@@ -299,7 +300,7 @@ class docC {
   constructor(docID, foldID, propNameS) {
     const numAtEndReg = new RegExp(/-\d+$/);
     const nameWOSuffixS = propNameS.split(numAtEndReg)[0];
-     
+
     console.log(nameWOSuffixS);
     this.file = DriveApp.getFileById(docID);
     // check to see if the current folder has a sub-folder with the name of the 
@@ -345,7 +346,7 @@ class databaseC {
     this.rootPwd = 'lew_FEEB@trit3auch';
     this.db = dbS; // name of the database
 
-     if (dbS == "applesmysql_loc") {
+    if (dbS == "applesmysql_loc") {
       let server = '98.7.126.220'; // this was gateway address as of 2022-11-21
       let port = '3306'; // port forwarded to 192.168.4.234, ip of macbook on 2022-11-21
       let pwd = this.rootPwd;
@@ -434,11 +435,18 @@ function getClauseInfo(dbInst, ck, proposalSize, proposalLocation, version = "cu
     if (!results.next()) {
       throw new Error(`for ck ${ck} and version ${version}, missing clause`);
     }
+    var exactLocationCKA = []; // list of cks that match exactly with proposalLocation
     results.beforeFirst();
     while (results.next()) {
-      // first check to see if this row matches location or generic and if not continue
+      // first check to see if this row matches location
+      // and if so put it in cl and append to exactLocationCKA 
+      // if generic, put in cl and if not continue
       const clauseLocation = results.getString("ClauseLocation");
-      if (clauseLocation.includes(proposalLocation) || clauseLocation.includes('Generic')) {
+      if (clauseLocation.includes(proposalLocation)) {
+        cl = proposalLocation;
+        exactLocationCKA.push(ck);
+      }
+      else if (clauseLocation.includes('Generic')) {
         cl = proposalLocation;
       } else {
         continue
@@ -459,8 +467,11 @@ function getClauseInfo(dbInst, ck, proposalSize, proposalLocation, version = "cu
       throw new Error(`for ck ${ck} size ${proposalSize} / location ${proposalLocation} missing clause`)
       // have now created an array of one or more of these structures 
     }
+    // eliminate rows where both exact location and "Generic" ck exists; in other words
+    // if a ck has both a location and generic, eliminate generic
+    var filteredResA = filterOutDuplicateLoc(exactLocationCKA, resA, proposalLocation);
     // could be several rows that match (with different sizes) so select the best fit
-    var bestFitRow = matchProposalSizeWithClause(proposalSize, ck, resA);
+    var bestFitRow = matchProposalSizeWithClause(proposalSize, ck, filteredResA);
 
   } catch (err) {
     throw new Error(err.message)
@@ -503,24 +514,61 @@ function getReplStructS(dbInst, ck) {
 class appC {
   constructor(appNameS) {
     this.sectionStruct = {
-    "Overview": ["Overview", "Use", "Security", "Date"],
-    "Operating_Expenses": ["OperatingExpenses", "RealEstateTaxes", "Electric"],
-    "Parking": ["Parking"],
-    "Tenant_Improvements": ["TenantImprovements"],
-    "Options": ["Options"]
-  };
+      "Overview": ["Overview", "Use", "Security", "Date"],
+      "Operating_Expenses": ["OperatingExpenses", "RealEstateTaxes", "Electric"],
+      "Parking": ["Parking"],
+      "Tenant_Improvements": ["TenantImprovements"],
+      "Options": ["Options"]
+    };
     this.appNameS = appNameS;
     this.sectionA = this.sectionStruct[appNameS];
   }
-  
+
   getAppNameS() {
     return this.appNameS;
   }
   getSectionA() {
     return this.sectionA;
   }
-  getSectionS() { 
+  getSectionS() {
     return colAToColS(this.sectionA); // locateed in its own fiile named same
   }
-
 }
+
+/**
+ * Purpose: takes a list of cks with exact location and an array of rows
+ * of these:
+ * var clauseRow = {
+        clauseID: results.getString("ClauseID"),
+        clauseKey: ck,
+        clauseBody: results.getString("ClauseBody"),
+        clauseSize: results.getString("ClauseSize"),
+        clauseLocation: cl,
+        section: results.getString("Section"),
+        clauseVersion: version
+      }
+ * and filters out the dupes
+ *
+ * @param  {string[]} exactLocationCKA - all cks with exact location
+ * @param  {object[]} resA - an array clause rows
+ * @return {object[]} filtResA - return value
+ */
+
+function filterOutDuplicateLoc(exactLocationCKA, resA, location) {
+  var filteredNoDupe = [];
+  for (var row in resA) {
+    if (exactLocationCKA.includes(resA[row].clauseKey) && resA[row].clauseLocation == location) {
+      filteredNoDupe.push(resA[row]);
+      continue
+    }
+    if (exactLocationCKA.includes(resA[row].clauseKey) && resA[row].clauseLocation != location) {
+      continue
+    }
+    if (resA[row].clauseLocation == "Generic") {
+      filteredNoDupe.push(resA[row]);
+    }
+  }
+
+  return filteredNoDupe
+}
+
